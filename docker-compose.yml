@@ -1,0 +1,44 @@
+services:
+  app:
+    build: .
+    container_name: ban-sai-yai-app
+    ports:
+      - "9090:9090"
+    environment:
+      - SPRING_PROFILES_ACTIVE=prod
+      - SPRING_DATASOURCE_URL=jdbc:mariadb://mariadb:3306/ban_sai_yai?useSSL=false&allowPublicKeyRetrieval=true
+      - SPRING_DATASOURCE_USERNAME=admin
+      - SPRING_DATASOURCE_PASSWORD=admin123
+      - SPRING_DATASOURCE_DRIVER_CLASS_NAME=org.mariadb.jdbc.Driver
+      - SPRING_JPA_HIBERNATE_DDL_AUTO=update
+      - SPRING_JPA_SHOW_SQL=true
+      - SPRING_JPA_PROPERTIES_HIBERNATE_DIALECT=org.hibernate.dialect.MariaDBDialect
+      - SPRING_FLYWAY_ENABLED=false
+    depends_on:
+      - mariadb
+    restart: unless-stopped
+    networks:
+      - ban-sai-yai-network
+
+  mariadb:
+    image: mariadb:10.8
+    container_name: ban-sai-yai-db
+    environment:
+      - MYSQL_DATABASE=ban_sai_yai
+      - MYSQL_USER=admin
+      - MYSQL_PASSWORD=admin123
+      - MYSQL_ROOT_PASSWORD=root123
+    volumes:
+      - mariadb_data:/var/lib/mysql
+    ports:
+      - "3306:3306"
+    networks:
+      - ban-sai-yai-network
+    restart: unless-stopped
+
+networks:
+  ban-sai-yai-network:
+    driver: bridge
+
+volumes:
+  mariadb_data:

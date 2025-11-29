@@ -1,0 +1,31 @@
+# Maven
+target/
+!target/*.jar
+
+# IDE
+.idea/
+*.iml
+*.iws
+*.ipr
+.settings/
+.project
+.classpath
+
+# Build output
+*.war
+*.ear
+
+# Logs
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Environment files (except for specific ones)
+*.properties
+*.yml
+!application*.yml
+!bootstrap*.yml
+!application*.properties
+!bootstrap*.properties
