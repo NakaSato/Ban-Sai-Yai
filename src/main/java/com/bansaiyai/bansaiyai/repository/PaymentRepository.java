@@ -24,6 +24,14 @@ import java.util.Optional;
 public interface PaymentRepository extends JpaRepository<Payment, Long> {
 
         /**
+         * Sums revenue (interest, fees, penalties) for completed payments within a date
+         * range.
+         */
+        @Query("SELECT SUM(COALESCE(p.interestAmount, 0) + COALESCE(p.feeAmount, 0) + COALESCE(p.penaltyAmount, 0)) " +
+                        "FROM Payment p WHERE p.paymentDate BETWEEN :startDate AND :endDate AND p.paymentStatus = 'COMPLETED'")
+        BigDecimal sumRevenueByDateRange(@Param("startDate") LocalDate startDate, @Param("endDate") LocalDate endDate);
+
+        /**
          * Find payment by payment number
          */
         Optional<Payment> findByPaymentNumber(String paymentNumber);

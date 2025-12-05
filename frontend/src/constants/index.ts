@@ -4,6 +4,7 @@ export const API_VERSION = 'v1';
 
 // Authentication Constants
 export const AUTH_TOKEN_KEY = 'auth_token';
+export const REFRESH_TOKEN_KEY = 'refresh_token';
 export const USER_KEY = 'user_data';
 export const TOKEN_REFRESH_THRESHOLD = 5 * 60 * 1000; // 5 minutes
 
@@ -236,7 +237,7 @@ export const STORAGE_KEYS = {
 // Export All
 export const CONSTANTS = {
   API: { API_BASE_URL, API_VERSION },
-  AUTH: { AUTH_TOKEN_KEY, USER_KEY, TOKEN_REFRESH_THRESHOLD },
+  AUTH: { AUTH_TOKEN_KEY, REFRESH_TOKEN_KEY, USER_KEY, TOKEN_REFRESH_THRESHOLD },
   PERMISSIONS,
   ROUTES,
   STATUS: {

@@ -1,6 +1,6 @@
 import { store } from '@/store';
-import { updateToken, clearAuth } from '@/store/slices/authSlice';
-import { AUTH_TOKEN_KEY, TOKEN_REFRESH_THRESHOLD } from '@/constants';
+import { updateTokens, clearAuth } from '@/store/slices/authSlice';
+import { AUTH_TOKEN_KEY, REFRESH_TOKEN_KEY, TOKEN_REFRESH_THRESHOLD } from '@/constants';
 
 let isRefreshing = false;
 let failedQueue: Array<{
@@ -78,10 +78,17 @@ export const refreshToken = async (): Promise<string> => {
 
     const data = await response.json();
     const newToken = data.token;
+    const newRefreshToken = data.refreshToken;
 
-    // Update token in store and localStorage
-    store.dispatch(updateToken(newToken));
+    // Update both access and refresh tokens in store and localStorage
+    store.dispatch(updateTokens({ 
+      token: newToken, 
+      refreshToken: newRefreshToken 
+    }));
     localStorage.setItem(AUTH_TOKEN_KEY, newToken);
+    if (newRefreshToken) {
+      localStorage.setItem(REFRESH_TOKEN_KEY, newRefreshToken);
+    }
 
     processQueue(null, newToken);
     return newToken;

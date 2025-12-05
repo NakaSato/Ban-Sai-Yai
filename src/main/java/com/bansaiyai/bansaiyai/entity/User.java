@@ -96,6 +96,15 @@ public class User extends BaseEntity {
 
   private void addRolePermissions() {
     switch (role) {
+      case ADMIN:
+        permissions.addAll(Set.of(
+            "MEMBER_READ", "MEMBER_WRITE", "MEMBER_DELETE",
+            "LOAN_READ", "LOAN_WRITE", "LOAN_DELETE", "LOAN_APPROVE",
+            "SAVINGS_READ", "SAVINGS_WRITE", "SAVINGS_DELETE",
+            "PAYMENT_READ", "PAYMENT_WRITE", "PAYMENT_DELETE",
+            "REPORT_READ", "REPORT_WRITE", "ADMIN_READ", "ADMIN_WRITE",
+            "SYSTEM_CONFIG", "USER_MANAGEMENT"));
+        break;
       case PRESIDENT:
         permissions.addAll(Set.of(
             "MEMBER_READ", "MEMBER_WRITE", "MEMBER_DELETE",
@@ -448,6 +457,7 @@ public class User extends BaseEntity {
   }
 
   public enum Role {
+    ADMIN,
     PRESIDENT,
     SECRETARY,
     OFFICER,

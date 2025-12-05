@@ -1,16 +1,16 @@
 spring:
   profiles:
     active: ${SPRING_PROFILES_ACTIVE:dev}
-  
+
   application:
     name: bansaiyai
-    
+
   datasource:
     url: ${DB_URL:jdbc:mysql://localhost:3306/bansaiyai_db?useSSL=false&serverTimezone=Asia/Bangkok&allowPublicKeyRetrieval=true}
     username: ${DB_USERNAME:bansaiyai_user}
     password: ${DB_PASSWORD:password}
     driver-class-name: com.mysql.cj.jdbc.Driver
-    
+
   jpa:
     hibernate:
       ddl-auto: ${DDL_AUTO:validate}
@@ -19,17 +19,32 @@ spring:
       hibernate:
         dialect: org.hibernate.dialect.MySQL8Dialect
         format_sql: true
-        
+
   servlet:
     multipart:
       max-file-size: ${MAX_FILE_SIZE:10MB}
       max-request-size: ${MAX_REQUEST_SIZE:10MB}
-      
+
   flyway:
     enabled: true
     locations: classpath:db/migration
     baseline-on-migrate: true
-    
+
+  # Redis cache configuration (optional but recommended for dashboard performance)
+  cache:
+    type: ${CACHE_TYPE:none}
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
+      timeout: ${REDIS_TIMEOUT:2000}
+      lettuce:
+        pool:
+          max-active: 8
+          max-idle: 8
+          min-idle: 0
+
   mail:
     host: ${MAIL_HOST:smtp.gmail.com}
     port: ${MAIL_PORT:587}
@@ -41,12 +56,12 @@ spring:
           auth: true
           starttls:
             enable: true
-            
+
 server:
   port: ${SERVER_PORT:9090}
   servlet:
     context-path: /api
-    
+
 management:
   endpoints:
     web:
@@ -55,14 +70,25 @@ management:
   endpoint:
     health:
       show-details: when-authorized
-      
+
 app:
   upload:
     location: ${UPLOAD_LOCATION:/opt/bansaiyai/uploads}
   jwt:
     secret: ${JWT_SECRET:bansaiyai-secret-key-for-jwt-token-generation-must-be-at-least-256-bits-long}
-    expiration: ${JWT_EXPIRATION:86400000}
-    
+    expiration: ${JWT_EXPIRATION:900000}
+    access-token-expiration: ${JWT_ACCESS_TOKEN_EXPIRATION:900000}
+    refresh-token-expiration: ${JWT_REFRESH_TOKEN_EXPIRATION:604800000}
+
+# Authentication / Rate Limiting Configuration
+auth:
+  account-lock:
+    enabled: ${AUTH_ACCOUNT_LOCK_ENABLED:true}
+  rate-limit:
+    max-attempts: ${AUTH_RATE_LIMIT_MAX_ATTEMPTS:5}
+    window-minutes: ${AUTH_RATE_LIMIT_WINDOW_MINUTES:15}
+    lockout-minutes: ${AUTH_RATE_LIMIT_LOCKOUT_MINUTES:15}
+
 logging:
   level:
     com.bansaiyai: ${LOG_LEVEL:INFO}
@@ -77,13 +103,13 @@ spring:
   config:
     activate:
       on-profile: dev
-      
+
   datasource:
     url: jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1
     username: sa
-    password: 
+    password:
     driver-class-name: org.h2.Driver
-    
+
   jpa:
     hibernate:
       ddl-auto: create-drop
@@ -91,52 +117,68 @@ spring:
     properties:
       hibernate:
         dialect: org.hibernate.dialect.H2Dialect
-    
+
   h2:
     console:
       enabled: true
-      
+
+  # Redis disabled by default in dev (can be enabled by setting CACHE_TYPE=redis)
+  cache:
+    type: none
+
 app:
   upload:
     location: ./uploads
   jwt:
     expiration: 3600000 # 1 hour for dev
-    
+    access-token-expiration: 900000 # 15 minutes
+    refresh-token-expiration: 604800000 # 7 days
+  rate-limit:
+    max-attempts: 999999
+    window-minutes: 15
+    lockout-minutes: 0
+
 logging:
   level:
     com.bansaiyai: DEBUG
     org.springframework.security: DEBUG
-    
+
 ---
 spring:
   config:
     activate:
       on-profile: test
-      
+
   datasource:
     url: jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1
     username: sa
-    password: 
+    password:
     driver-class-name: org.h2.Driver
-    
+
   jpa:
     hibernate:
       ddl-auto: create-drop
     show-sql: false
-    
+
 app:
   jwt:
     expiration: 60000 # 1 minute for tests
-    
+    access-token-expiration: 60000 # 1 minute
+    refresh-token-expiration: 300000 # 5 minutes
+  rate-limit:
+    max-attempts: 3
+    window-minutes: 5
+    lockout-minutes: 5
+
 ---
 spring:
   config:
     activate:
       on-profile: prod
-      
+
   jpa:
     show-sql: false
-    
+
 logging:
   level:
     com.bansaiyai: INFO

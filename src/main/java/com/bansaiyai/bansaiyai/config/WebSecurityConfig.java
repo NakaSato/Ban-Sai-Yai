@@ -44,13 +44,13 @@ public class WebSecurityConfig {
         .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
         .authorizeHttpRequests(auth -> auth
             // Public endpoints
-            .requestMatchers("/api/auth/**").permitAll()
-            .requestMatchers(HttpMethod.POST, "/api/auth/login").permitAll()
-            .requestMatchers(HttpMethod.POST, "/api/auth/register").permitAll()
-            .requestMatchers(HttpMethod.POST, "/api/auth/forgot-password").permitAll()
-            .requestMatchers(HttpMethod.POST, "/api/auth/reset-password").permitAll()
-            .requestMatchers(HttpMethod.GET, "/api/auth/check-username/**").permitAll()
-            .requestMatchers(HttpMethod.GET, "/api/auth/check-email/**").permitAll()
+            .requestMatchers("/auth/**").permitAll()
+            .requestMatchers(HttpMethod.POST, "/auth/login").permitAll()
+            .requestMatchers(HttpMethod.POST, "/auth/register").permitAll()
+            .requestMatchers(HttpMethod.POST, "/auth/forgot-password").permitAll()
+            .requestMatchers(HttpMethod.POST, "/auth/reset-password").permitAll()
+            .requestMatchers(HttpMethod.GET, "/auth/check-username/**").permitAll()
+            .requestMatchers(HttpMethod.GET, "/auth/check-email/**").permitAll()
 
             // Swagger/OpenAPI endpoints
             .requestMatchers("/v3/api-docs/**").permitAll()

@@ -1,8 +1,132 @@
 import { apiSlice } from './apiSlice';
-import { DashboardStats, ChartData } from '@/types';
+import { 
+  DashboardStats, 
+  ChartData, 
+  FiscalPeriod, 
+  MemberSearchResult,
+  MemberFinancials,
+  DepositRequest,
+  LoanPaymentRequest,
+  TransactionResponse
+} from '@/types';
 
 export const dashboardApi = apiSlice.injectEndpoints({
   endpoints: (builder) => ({
+    // Get fiscal period status
+    getFiscalPeriod: builder.query<FiscalPeriod, void>({
+      query: () => '/dashboard/fiscal-period',
+      providesTags: ['Dashboard'],
+    }),
+
+    // Search members
+    searchMembers: builder.query<MemberSearchResult[], { q: string; limit?: number }>({
+      query: ({ q, limit = 5 }) => ({
+        url: '/dashboard/members/search',
+        params: { q, limit },
+      }),
+      providesTags: ['Dashboard'],
+    }),
+
+    // Get member financials
+    getMemberFinancials: builder.query<MemberFinancials, number>({
+      query: (memberId) => `/dashboard/members/${memberId}/financials`,
+      providesTags: ['Dashboard'],
+    }),
+
+    // Process deposit
+    processDeposit: builder.mutation<TransactionResponse, DepositRequest>({
+      query: (request) => ({
+        url: '/dashboard/transactions/deposit',
+        method: 'POST',
+        body: request,
+      }),
+      invalidatesTags: ['Dashboard'],
+    }),
+
+    // Process loan payment
+    processLoanPayment: builder.mutation<TransactionResponse, LoanPaymentRequest>({
+      query: (request) => ({
+        url: '/dashboard/transactions/loan-payment',
+        method: 'POST',
+        body: request,
+      }),
+      invalidatesTags: ['Dashboard'],
+    }),
+
+    // Get minimum interest for loan
+    getMinimumInterest: builder.query<{ minimumInterest: number }, number>({
+      query: (loanId) => `/dashboard/loans/${loanId}/minimum-interest`,
+      providesTags: ['Dashboard'],
+    }),
+
+    // Get cash box tally
+    getCashBox: builder.query<{
+      totalIn: number;
+      totalOut: number;
+      netCash: number;
+      date: string;
+    }, void>({
+      query: () => '/dashboard/officer/cash-box',
+      providesTags: ['Dashboard'],
+    }),
+
+    // Get recent transactions
+    getRecentTransactions: builder.query<Array<{
+      transactionId: number;
+      timestamp: string;
+      memberName: string;
+      type: string;
+      amount: number;
+    }>, { limit?: number }>({
+      query: ({ limit = 10 }) => ({
+        url: '/dashboard/officer/recent-transactions',
+        params: { limit },
+      }),
+      providesTags: ['Dashboard'],
+    }),
+
+    // Get trial balance (Secretary Dashboard)
+    getTrialBalance: builder.query<{
+      totalDebits: number;
+      totalCredits: number;
+      variance: number;
+      isBalanced: boolean;
+      fiscalPeriod: string;
+    }, void>({
+      query: () => '/dashboard/secretary/trial-balance',
+      providesTags: ['Dashboard'],
+    }),
+
+    // Get unclassified transaction count (Secretary Dashboard)
+    getUnclassifiedCount: builder.query<{
+      count: number;
+    }, void>({
+      query: () => '/dashboard/secretary/unclassified-count',
+      providesTags: ['Dashboard'],
+    }),
+
+    // Get financial previews (Secretary Dashboard)
+    getFinancialPreviews: builder.query<{
+      incomeData: {
+        labels: string[];
+        datasets: {
+          income: number;
+          expenses: number;
+        };
+      };
+      balanceSheetData: {
+        labels: string[];
+        datasets: {
+          cashAndBank: number;
+          loansReceivable: number;
+          otherAssets: number;
+        };
+      };
+    }, void>({
+      query: () => '/dashboard/secretary/financial-previews',
+      providesTags: ['Dashboard'],
+    }),
+
     // Get dashboard statistics
     getDashboardStats: builder.query<DashboardStats, { role?: string; period?: string }>({
       query: ({ role, period = 'month' }) => ({
@@ -303,6 +427,17 @@ export const dashboardApi = apiSlice.injectEndpoints({
 });
 
 export const {
+  useGetFiscalPeriodQuery,
+  useSearchMembersQuery,
+  useGetMemberFinancialsQuery,
+  useProcessDepositMutation,
+  useProcessLoanPaymentMutation,
+  useGetMinimumInterestQuery,
+  useGetCashBoxQuery,
+  useGetRecentTransactionsQuery,
+  useGetTrialBalanceQuery,
+  useGetUnclassifiedCountQuery,
+  useGetFinancialPreviewsQuery,
   useGetDashboardStatsQuery,
   useGetMemberGrowthChartQuery,
   useGetLoanPortfolioChartQuery,

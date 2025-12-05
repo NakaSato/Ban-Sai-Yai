@@ -10,6 +10,9 @@ import { paymentsApi } from './api/paymentsApi';
 import { dashboardApi } from './api/dashboardApi';
 import { reportsApi } from './api/reportsApi';
 
+// Export auth actions for use in components
+export { loginUser, logoutUser, refreshAuthToken } from './actions/authActions';
+
 export const store = configureStore({
   reducer: {
     auth: authSlice,

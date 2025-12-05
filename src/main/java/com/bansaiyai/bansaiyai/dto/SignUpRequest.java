@@ -3,6 +3,8 @@ package com.bansaiyai.bansaiyai.dto;
 import com.bansaiyai.bansaiyai.entity.User;
 import jakarta.validation.constraints.*;
 
+import java.time.LocalDate;
+
 public class SignUpRequest {
 
   @NotBlank(message = "Username is required")
@@ -26,11 +28,25 @@ public class SignUpRequest {
   @Size(max = 50, message = "Last name must be less than 50 characters")
   private String lastName;
 
+  @NotBlank(message = "Phone number is required")
   @Pattern(regexp = "^[0-9]{9,10}$", message = "Phone number must be 9-10 digits")
   private String phoneNumber;
 
   @NotNull(message = "Role is required")
   private User.Role role;
+
+  // Member-specific fields
+  @NotBlank(message = "ID card is required")
+  @Pattern(regexp = "^\\d{13}$", message = "ID card must be exactly 13 digits")
+  private String idCard;
+
+  @NotNull(message = "Date of birth is required")
+  @Past(message = "Date of birth must be in the past")
+  private LocalDate dateOfBirth;
+
+  @NotBlank(message = "Address is required")
+  @Size(min = 10, max = 200, message = "Address must be between 10 and 200 characters")
+  private String address;
 
   // Getters and Setters
   public String getUsername() {
@@ -87,5 +103,29 @@ public class SignUpRequest {
 
   public void setRole(User.Role role) {
     this.role = role;
+  }
+
+  public String getIdCard() {
+    return idCard;
+  }
+
+  public void setIdCard(String idCard) {
+    this.idCard = idCard;
+  }
+
+  public LocalDate getDateOfBirth() {
+    return dateOfBirth;
+  }
+
+  public void setDateOfBirth(LocalDate dateOfBirth) {
+    this.dateOfBirth = dateOfBirth;
+  }
+
+  public String getAddress() {
+    return address;
+  }
+
+  public void setAddress(String address) {
+    this.address = address;
   }
 }

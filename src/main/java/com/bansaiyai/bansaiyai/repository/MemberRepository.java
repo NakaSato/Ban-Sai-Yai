@@ -15,10 +15,14 @@ public interface MemberRepository extends JpaRepository<Member, Long> {
   @Query("SELECT m FROM Member m WHERE m.user.id = :userId")
   Optional<Member> findByUserId(@Param("userId") Long userId);
 
+  long countByCreatedAtBetween(java.time.LocalDateTime startDate, java.time.LocalDateTime endDate);
+
   List<Member> findByIsActive(boolean isActive);
 
   @Query("SELECT m FROM Member m WHERE " +
+      "LOWER(m.memberId) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
       "LOWER(m.name) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+      "LOWER(m.idCard) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
       "LOWER(m.email) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
       "LOWER(m.phone) LIKE LOWER(CONCAT('%', :keyword, '%'))")
   List<Member> searchMembers(@Param("keyword") String keyword);
@@ -33,4 +37,6 @@ public interface MemberRepository extends JpaRepository<Member, Long> {
   long countInactiveMembers();
 
   long countByIsActive(Boolean isActive);
+
+  List<Member> findTop10ByOrderByCreatedAtDesc();
 }

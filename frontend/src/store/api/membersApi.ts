@@ -81,7 +81,7 @@ export const membersApi = apiSlice.injectEndpoints({
       newMembersThisMonth: number;
       membersByStatus: Record<MemberStatus, number>;
     }, void>({
-      query: () => '/members/stats',
+      query: () => '/members/statistics',
       providesTags: ['Dashboard'],
     }),
 

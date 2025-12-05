@@ -515,4 +515,21 @@ public class SavingService {
       }
     }
   }
+
+  public SavingStatistics getSavingStatistics() {
+    BigDecimal totalSavings = savingRepository.sumTotalSavings();
+    long totalAccounts = savingRepository.count();
+
+    return SavingStatistics.builder()
+        .totalSavings(totalSavings)
+        .totalAccounts(totalAccounts)
+        .build();
+  }
+
+  @lombok.Data
+  @lombok.Builder
+  public static class SavingStatistics {
+    private BigDecimal totalSavings;
+    private long totalAccounts;
+  }
 }

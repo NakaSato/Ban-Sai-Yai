@@ -9,6 +9,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
@@ -49,11 +50,17 @@ public class AuthService {
         .credentialsNonExpired(true)
         .build();
 
-    // Create associated member
+    // Create associated member with required fields
+    String memberId = "MBR" + System.currentTimeMillis(); // Generate unique member ID
     Member member = Member.builder()
+        .memberId(memberId)
         .name(signUpRequest.getFirstName() + " " + signUpRequest.getLastName())
         .email(signUpRequest.getEmail())
         .phone(signUpRequest.getPhoneNumber())
+        .idCard(signUpRequest.getIdCard())
+        .dateOfBirth(signUpRequest.getDateOfBirth())
+        .address(signUpRequest.getAddress())
+        .registrationDate(LocalDate.now())
         .isActive(true)
         .build();
 

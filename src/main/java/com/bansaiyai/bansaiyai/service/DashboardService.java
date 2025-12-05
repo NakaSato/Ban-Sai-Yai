@@ -3,6 +3,7 @@ package com.bansaiyai.bansaiyai.service;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.bansaiyai.bansaiyai.entity.AccountingEntry;
 import com.bansaiyai.bansaiyai.entity.Loan;
 import com.bansaiyai.bansaiyai.entity.Member;
 import com.bansaiyai.bansaiyai.entity.Payment;
@@ -13,6 +14,11 @@ import com.bansaiyai.bansaiyai.repository.MemberRepository;
 import com.bansaiyai.bansaiyai.repository.LoanRepository;
 import com.bansaiyai.bansaiyai.repository.SavingRepository;
 import com.bansaiyai.bansaiyai.repository.PaymentRepository;
+import com.bansaiyai.bansaiyai.repository.SavingTransactionRepository;
+import com.bansaiyai.bansaiyai.dto.DashboardDTO;
+import com.bansaiyai.bansaiyai.entity.SavingTransaction;
+import java.util.ArrayList;
+import java.util.Comparator;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -41,14 +47,192 @@ public class DashboardService {
   private final LoanRepository loanRepository;
   private final SavingRepository savingRepository;
   private final PaymentRepository paymentRepository;
+  private final SavingTransactionRepository savingTransactionRepository;
+  private final com.bansaiyai.bansaiyai.repository.AccountingRepository accountingRepository;
 
   // Manual constructor
   public DashboardService(MemberRepository memberRepository, LoanRepository loanRepository,
-      SavingRepository savingRepository, PaymentRepository paymentRepository) {
+      SavingRepository savingRepository, PaymentRepository paymentRepository,
+      SavingTransactionRepository savingTransactionRepository,
+      com.bansaiyai.bansaiyai.repository.AccountingRepository accountingRepository) {
     this.memberRepository = memberRepository;
     this.loanRepository = loanRepository;
     this.savingRepository = savingRepository;
     this.paymentRepository = paymentRepository;
+    this.savingTransactionRepository = savingTransactionRepository;
+    this.accountingRepository = accountingRepository;
+  }
+
+  /**
+   * Get current fiscal period status
+   */
+  public com.bansaiyai.bansaiyai.dto.dashboard.FiscalPeriodDTO getCurrentFiscalPeriod() {
+    try {
+      // For now, return current month and OPEN status
+      // In a real implementation, this would query system_config table
+      LocalDate now = LocalDate.now();
+      String period = now.getMonth().toString() + " " + now.getYear();
+      String status = "OPEN"; // Default to OPEN
+      
+      return new com.bansaiyai.bansaiyai.dto.dashboard.FiscalPeriodDTO(period, status);
+    } catch (Exception e) {
+      log.error("Error getting fiscal period: {}", e.getMessage());
+      return new com.bansaiyai.bansaiyai.dto.dashboard.FiscalPeriodDTO("Unknown", "CLOSED");
+    }
+  }
+
+  /**
+   * Search members by query string
+   * Searches across member_id, name, and id_card fields
+   */
+  public List<com.bansaiyai.bansaiyai.dto.dashboard.MemberSearchResultDTO> searchMembers(String query, int limit) {
+    try {
+      if (query == null || query.trim().isEmpty()) {
+        return List.of();
+      }
+      
+      // Search using repository method
+      List<Member> members = memberRepository.searchMembers(query.trim());
+      
+      // Convert to DTOs and limit results
+      return members.stream()
+          .limit(limit)
+          .map(this::convertToSearchResultDTO)
+          .collect(Collectors.toList());
+    } catch (Exception e) {
+      log.error("Error searching members with query '{}': {}", query, e.getMessage());
+      return List.of();
+    }
+  }
+
+  /**
+   * Get member financial information for teller action card
+   * Includes savings balance, loan principal, and loan status
+   */
+  public com.bansaiyai.bansaiyai.dto.dashboard.MemberFinancialsDTO getMemberFinancials(Long memberId) {
+    try {
+      // Get member's savings balance
+      BigDecimal savingsBalance = savingRepository.sumBalancesByMemberId(memberId);
+      if (savingsBalance == null) {
+        savingsBalance = BigDecimal.ZERO;
+      }
+
+      // Get member's active loan information
+      List<Loan> activeLoans = loanRepository.findByMemberIdAndStatus(memberId, LoanStatus.ACTIVE);
+      
+      BigDecimal loanPrincipal = BigDecimal.ZERO;
+      String loanStatus = "NO_LOAN";
+      
+      if (!activeLoans.isEmpty()) {
+        // Get the most recent active loan
+        Loan activeLoan = activeLoans.get(0);
+        loanPrincipal = activeLoan.getOutstandingBalance();
+        loanStatus = activeLoan.getStatus().name();
+      }
+
+      return new com.bansaiyai.bansaiyai.dto.dashboard.MemberFinancialsDTO(
+          savingsBalance,
+          loanPrincipal,
+          loanStatus
+      );
+    } catch (Exception e) {
+      log.error("Error getting member financials for member {}: {}", memberId, e.getMessage());
+      return new com.bansaiyai.bansaiyai.dto.dashboard.MemberFinancialsDTO(
+          BigDecimal.ZERO,
+          BigDecimal.ZERO,
+          "ERROR"
+      );
+    }
+  }
+
+  /**
+   * Calculate cash box tally for the current date
+   * Includes total inflows, outflows, and net cash
+   */
+  public com.bansaiyai.bansaiyai.dto.dashboard.CashBoxDTO calculateCashBoxTally() {
+    return calculateCashBoxTally(LocalDate.now());
+  }
+
+  /**
+   * Calculate cash box tally for a specific date
+   * Includes total inflows, outflows, and net cash
+   */
+  public com.bansaiyai.bansaiyai.dto.dashboard.CashBoxDTO calculateCashBoxTally(LocalDate date) {
+    try {
+      // Calculate total inflows from savings transactions (deposits)
+      BigDecimal savingsInflows = savingTransactionRepository.findAll().stream()
+          .filter(txn -> txn.getTransactionDate().equals(date))
+          .filter(txn -> txn.isCredit() && !txn.getIsReversed())
+          .map(com.bansaiyai.bansaiyai.entity.SavingTransaction::getAmount)
+          .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+      // Calculate total outflows from savings transactions (withdrawals)
+      BigDecimal savingsOutflows = savingTransactionRepository.findAll().stream()
+          .filter(txn -> txn.getTransactionDate().equals(date))
+          .filter(txn -> txn.isDebit() && !txn.getIsReversed())
+          .map(com.bansaiyai.bansaiyai.entity.SavingTransaction::getAmount)
+          .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+      // Calculate inflows from loan payments (principal, interest, fees)
+      BigDecimal loanPaymentInflows = paymentRepository.findAll().stream()
+          .filter(payment -> payment.getPaymentDate() != null && payment.getPaymentDate().equals(date))
+          .filter(payment -> payment.getPaymentStatus() == com.bansaiyai.bansaiyai.entity.enums.PaymentStatus.COMPLETED)
+          .filter(payment -> payment.isLoanPayment())
+          .map(payment -> {
+            BigDecimal total = payment.getAmount() != null ? payment.getAmount() : BigDecimal.ZERO;
+            if (payment.getInterestAmount() != null) {
+              total = total.add(payment.getInterestAmount());
+            }
+            if (payment.getFeeAmount() != null) {
+              total = total.add(payment.getFeeAmount());
+            }
+            if (payment.getPenaltyAmount() != null) {
+              total = total.add(payment.getPenaltyAmount());
+            }
+            return total;
+          })
+          .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+      // Calculate outflows from loan disbursements
+      BigDecimal loanDisbursementOutflows = loanRepository.findAll().stream()
+          .filter(loan -> loan.getDisbursementDate() != null && loan.getDisbursementDate().equals(date))
+          .filter(loan -> loan.getStatus() == com.bansaiyai.bansaiyai.entity.enums.LoanStatus.ACTIVE)
+          .map(com.bansaiyai.bansaiyai.entity.Loan::getPrincipalAmount)
+          .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+      // Calculate totals
+      BigDecimal totalIn = savingsInflows.add(loanPaymentInflows);
+      BigDecimal totalOut = savingsOutflows.add(loanDisbursementOutflows);
+      BigDecimal netCash = totalIn.subtract(totalOut);
+
+      return new com.bansaiyai.bansaiyai.dto.dashboard.CashBoxDTO(
+          totalIn,
+          totalOut,
+          netCash,
+          date
+      );
+    } catch (Exception e) {
+      log.error("Error calculating cash box tally for date {}: {}", date, e.getMessage());
+      return new com.bansaiyai.bansaiyai.dto.dashboard.CashBoxDTO(
+          BigDecimal.ZERO,
+          BigDecimal.ZERO,
+          BigDecimal.ZERO,
+          date
+      );
+    }
+  }
+
+  /**
+   * Convert Member entity to MemberSearchResultDTO
+   */
+  private com.bansaiyai.bansaiyai.dto.dashboard.MemberSearchResultDTO convertToSearchResultDTO(Member member) {
+    return new com.bansaiyai.bansaiyai.dto.dashboard.MemberSearchResultDTO(
+        member.getId(),
+        member.getName().split(" ")[0], // First name (simplified)
+        member.getName().contains(" ") ? member.getName().substring(member.getName().indexOf(" ") + 1) : "", // Last name
+        member.getPhotoPath() != null ? member.getPhotoPath() : "/default-avatar.png",
+        member.getIsActive() ? "Active" : "Inactive"
+    );
   }
 
   /**
@@ -90,6 +274,13 @@ public class DashboardService {
       BigDecimal totalPaymentsLastMonth = paymentRepository.sumPaymentsByDateRange(startOfLastMonth,
           startOfMonth.minusDays(1));
 
+      // Calculate monthly revenue (interest + fees + penalties)
+      BigDecimal monthlyRevenue = paymentRepository.sumRevenueByDateRange(startOfMonth, today);
+
+      // Calculate new members this month
+      long newMembersThisMonth = memberRepository.countByCreatedAtBetween(startOfMonth.atStartOfDay(),
+          today.atTime(23, 59, 59));
+
       // Calculate growth rates
       double memberGrowthRate = calculateGrowthRate(activeMembers, totalMembers);
       double paymentGrowthRate = calculateGrowthRate(
@@ -111,6 +302,8 @@ public class DashboardService {
           .pendingPayments(pendingPayments)
           .overduePayments(overduePayments)
           .totalPaymentsThisMonth(totalPaymentsThisMonth != null ? totalPaymentsThisMonth : BigDecimal.ZERO)
+          .monthlyRevenue(monthlyRevenue != null ? monthlyRevenue : BigDecimal.ZERO)
+          .newMembersThisMonth(newMembersThisMonth)
           .paymentGrowthRate(paymentGrowthRate)
           .lastUpdated(LocalDateTime.now())
           .build();
@@ -253,6 +446,77 @@ public class DashboardService {
     }
   }
 
+  /**
+   * Get recent activities for the dashboard
+   */
+  public List<DashboardDTO.ActivityItem> getRecentActivities(int limit) {
+    List<DashboardDTO.ActivityItem> activities = new ArrayList<>();
+
+    // Fetch recent members
+    List<Member> recentMembers = memberRepository.findTop10ByOrderByCreatedAtDesc();
+    activities.addAll(recentMembers.stream()
+        .map(this::mapMemberToActivity)
+        .collect(Collectors.toList()));
+
+    // Fetch recent loans
+    List<Loan> recentLoans = loanRepository.findTop10ByOrderByCreatedAtDesc();
+    activities.addAll(recentLoans.stream()
+        .map(this::mapLoanToActivity)
+        .collect(Collectors.toList()));
+
+    // Fetch recent transactions
+    List<SavingTransaction> recentTransactions = savingTransactionRepository
+        .findRecentTransactions(org.springframework.data.domain.PageRequest.of(0, 10));
+    activities.addAll(recentTransactions.stream()
+        .map(this::mapTransactionToActivity)
+        .collect(Collectors.toList()));
+
+    // Sort by timestamp desc and limit
+    return activities.stream()
+        .sorted(Comparator.comparing(DashboardDTO.ActivityItem::getTimestamp).reversed())
+        .limit(limit)
+        .collect(Collectors.toList());
+  }
+
+  private DashboardDTO.ActivityItem mapMemberToActivity(Member member) {
+    return DashboardDTO.ActivityItem.builder()
+        .id("MEM-" + member.getId())
+        .type(DashboardDTO.ActivityType.MEMBER)
+        .action("New Member Joined")
+        .description("Member " + member.getName() + " joined the cooperative.")
+        .performedBy(member.getCreatedBy())
+        .timestamp(member.getCreatedAt())
+        .entityId(String.valueOf(member.getId()))
+        .entityName(member.getName())
+        .build();
+  }
+
+  private DashboardDTO.ActivityItem mapLoanToActivity(Loan loan) {
+    return DashboardDTO.ActivityItem.builder()
+        .id("LOAN-" + loan.getId())
+        .type(DashboardDTO.ActivityType.LOAN)
+        .action("Loan Application")
+        .description("Loan application for " + loan.getMember().getName() + " (" + loan.getLoanType() + ")")
+        .performedBy(loan.getCreatedBy())
+        .timestamp(loan.getCreatedAt())
+        .entityId(String.valueOf(loan.getId()))
+        .entityName(loan.getLoanNumber())
+        .build();
+  }
+
+  private DashboardDTO.ActivityItem mapTransactionToActivity(SavingTransaction transaction) {
+    return DashboardDTO.ActivityItem.builder()
+        .id("TXN-" + transaction.getId())
+        .type(DashboardDTO.ActivityType.SAVINGS)
+        .action(transaction.getTransactionType().name())
+        .description(transaction.getDescription())
+        .performedBy(transaction.getCreatedBy())
+        .timestamp(transaction.getTransactionDate().atStartOfDay())
+        .entityId(String.valueOf(transaction.getId()))
+        .entityName(transaction.getTransactionNumber())
+        .build();
+  }
+
   // Helper methods
 
   private double calculateGrowthRate(Number current, Number previous) {
@@ -351,6 +615,8 @@ public class DashboardService {
     private Long pendingPayments;
     private Long overduePayments;
     private BigDecimal totalPaymentsThisMonth;
+    private BigDecimal monthlyRevenue;
+    private Long newMembersThisMonth;
     private Double paymentGrowthRate;
     private LocalDateTime lastUpdated;
 
@@ -374,6 +640,8 @@ public class DashboardService {
       private Long pendingPayments;
       private Long overduePayments;
       private BigDecimal totalPaymentsThisMonth;
+      private BigDecimal monthlyRevenue;
+      private Long newMembersThisMonth;
       private Double paymentGrowthRate;
       private LocalDateTime lastUpdated;
 
@@ -447,6 +715,16 @@ public class DashboardService {
         return this;
       }
 
+      public AdminDashboardStatsBuilder monthlyRevenue(BigDecimal monthlyRevenue) {
+        this.monthlyRevenue = monthlyRevenue;
+        return this;
+      }
+
+      public AdminDashboardStatsBuilder newMembersThisMonth(Long newMembersThisMonth) {
+        this.newMembersThisMonth = newMembersThisMonth;
+        return this;
+      }
+
       public AdminDashboardStatsBuilder paymentGrowthRate(Double paymentGrowthRate) {
         this.paymentGrowthRate = paymentGrowthRate;
         return this;
@@ -473,6 +751,8 @@ public class DashboardService {
         stats.pendingPayments = this.pendingPayments;
         stats.overduePayments = this.overduePayments;
         stats.totalPaymentsThisMonth = this.totalPaymentsThisMonth;
+        stats.monthlyRevenue = this.monthlyRevenue;
+        stats.newMembersThisMonth = this.newMembersThisMonth;
         stats.paymentGrowthRate = this.paymentGrowthRate;
         stats.lastUpdated = this.lastUpdated;
         return stats;
@@ -495,6 +775,8 @@ public class DashboardService {
           .pendingPayments(0L)
           .overduePayments(0L)
           .totalPaymentsThisMonth(BigDecimal.ZERO)
+          .monthlyRevenue(BigDecimal.ZERO)
+          .newMembersThisMonth(0L)
           .paymentGrowthRate(0.0)
           .lastUpdated(LocalDateTime.now())
           .build();
@@ -902,6 +1184,471 @@ public class DashboardService {
         summary.paymentDate = this.paymentDate;
         return summary;
       }
+    }
+  }
+
+  /**
+   * Get member growth chart data
+   */
+  public DashboardDTO.ChartData getMemberGrowthChartData(String period) {
+    // Mock implementation for now - replace with actual DB queries later
+    List<String> labels = List.of("Jan", "Feb", "Mar", "Apr", "May", "Jun");
+    List<Number> data = List.of(12, 19, 3, 5, 2, 3);
+
+    DashboardDTO.DataSet dataset = DashboardDTO.DataSet.builder()
+        .label("New Members")
+        .data(data)
+        .borderColor("rgb(75, 192, 192)")
+        .backgroundColor("rgba(75, 192, 192, 0.5)")
+        .fill(true)
+        .build();
+
+    return DashboardDTO.ChartData.builder()
+        .labels(labels)
+        .datasets(List.of(dataset))
+        .build();
+  }
+
+  /**
+   * Get loan portfolio chart data
+   */
+  public DashboardDTO.ChartData getLoanPortfolioChartData(String period) {
+    // Mock implementation
+    List<String> labels = List.of("Personal", "Business", "Education", "Emergency");
+    List<Number> data = List.of(12, 19, 3, 5);
+
+    DashboardDTO.DataSet dataset = DashboardDTO.DataSet.builder()
+        .label("# of Loans")
+        .data(data)
+        .backgroundColor("#FF6384") // Simplified for single color or handle array in frontend
+        .build();
+
+    return DashboardDTO.ChartData.builder()
+        .labels(labels)
+        .datasets(List.of(dataset))
+        .build();
+  }
+
+  /**
+   * Get savings growth chart data
+   */
+  public DashboardDTO.ChartData getSavingsGrowthChartData(String period) {
+    // Mock implementation
+    List<String> labels = List.of("Jan", "Feb", "Mar", "Apr", "May", "Jun");
+    List<Number> data = List.of(50000, 75000, 100000, 120000, 150000, 180000);
+
+    DashboardDTO.DataSet dataset = DashboardDTO.DataSet.builder()
+        .label("Total Savings (THB)")
+        .data(data)
+        .backgroundColor("rgba(53, 162, 235, 0.5)")
+        .build();
+
+    return DashboardDTO.ChartData.builder()
+        .labels(labels)
+        .datasets(List.of(dataset))
+        .build();
+  }
+
+  /**
+   * Get recent transactions for Officer Dashboard transaction feed
+   * Combines savings transactions and loan payments with member information
+   */
+  public List<com.bansaiyai.bansaiyai.dto.dashboard.TransactionDTO> getRecentTransactions(int limit) {
+    try {
+      List<com.bansaiyai.bansaiyai.dto.dashboard.TransactionDTO> transactions = new ArrayList<>();
+      
+      // Get recent savings transactions
+      List<SavingTransaction> savingTransactions = savingTransactionRepository.findAll().stream()
+          .filter(txn -> !txn.getIsReversed())
+          .sorted((a, b) -> {
+            // Sort by transaction date descending, then by created date
+            int dateCompare = b.getTransactionDate().compareTo(a.getTransactionDate());
+            if (dateCompare != 0) return dateCompare;
+            return b.getCreatedAt().compareTo(a.getCreatedAt());
+          })
+          .limit(limit * 2) // Get more to ensure we have enough after combining
+          .collect(Collectors.toList());
+      
+      // Convert savings transactions to DTOs
+      for (SavingTransaction txn : savingTransactions) {
+        String memberName = txn.getSavingAccount() != null && txn.getSavingAccount().getMember() != null
+            ? txn.getSavingAccount().getMember().getName()
+            : "Unknown Member";
+        
+        LocalDateTime timestamp = txn.getTransactionDate().atStartOfDay();
+        if (txn.getCreatedAt() != null) {
+          timestamp = txn.getCreatedAt();
+        }
+        
+        transactions.add(new com.bansaiyai.bansaiyai.dto.dashboard.TransactionDTO(
+            txn.getId(),
+            timestamp,
+            memberName,
+            txn.getTransactionType().name(),
+            txn.getAmount()
+        ));
+      }
+      
+      // Get recent loan payments
+      List<Payment> payments = paymentRepository.findAll().stream()
+          .filter(p -> p.getPaymentStatus() == PaymentStatus.COMPLETED)
+          .filter(p -> p.isLoanPayment())
+          .sorted((a, b) -> {
+            // Sort by payment date descending
+            if (a.getPaymentDate() == null) return 1;
+            if (b.getPaymentDate() == null) return -1;
+            int dateCompare = b.getPaymentDate().compareTo(a.getPaymentDate());
+            if (dateCompare != 0) return dateCompare;
+            if (a.getCreatedAt() != null && b.getCreatedAt() != null) {
+              return b.getCreatedAt().compareTo(a.getCreatedAt());
+            }
+            return 0;
+          })
+          .limit(limit * 2)
+          .collect(Collectors.toList());
+      
+      // Convert payments to DTOs
+      for (Payment payment : payments) {
+        String memberName = payment.getMember() != null
+            ? payment.getMember().getName()
+            : "Unknown Member";
+        
+        LocalDateTime timestamp = payment.getPaymentDate() != null 
+            ? payment.getPaymentDate().atStartOfDay()
+            : LocalDateTime.now();
+        if (payment.getCreatedAt() != null) {
+          timestamp = payment.getCreatedAt();
+        }
+        
+        transactions.add(new com.bansaiyai.bansaiyai.dto.dashboard.TransactionDTO(
+            payment.getId(),
+            timestamp,
+            memberName,
+            payment.getPaymentType().name(),
+            payment.getAmount()
+        ));
+      }
+      
+      // Sort all transactions by timestamp descending and limit
+      return transactions.stream()
+          .sorted((a, b) -> b.getTimestamp().compareTo(a.getTimestamp()))
+          .limit(limit)
+          .collect(Collectors.toList());
+          
+    } catch (Exception e) {
+      log.error("Error getting recent transactions: {}", e.getMessage());
+      return List.of();
+    }
+  }
+
+  /**
+   * Calculate trial balance for the current fiscal period
+   * Returns total debits, credits, variance, and balanced status
+   */
+  public com.bansaiyai.bansaiyai.dto.dashboard.TrialBalanceDTO calculateTrialBalance() {
+    try {
+      // Get current fiscal period
+      com.bansaiyai.bansaiyai.dto.dashboard.FiscalPeriodDTO fiscalPeriod = getCurrentFiscalPeriod();
+      String period = fiscalPeriod.getPeriod();
+      
+      // Convert period format from "MONTH YEAR" to "YYYY-MM" for database query
+      String fiscalPeriodKey = convertPeriodToKey(period);
+      
+      // Calculate total debits and credits for the fiscal period
+      BigDecimal totalDebits = accountingRepository.sumDebitsByFiscalPeriod(fiscalPeriodKey);
+      BigDecimal totalCredits = accountingRepository.sumCreditsByFiscalPeriod(fiscalPeriodKey);
+      
+      // Handle null values
+      if (totalDebits == null) {
+        totalDebits = BigDecimal.ZERO;
+      }
+      if (totalCredits == null) {
+        totalCredits = BigDecimal.ZERO;
+      }
+      
+      // Calculate variance (debits - credits)
+      BigDecimal variance = totalDebits.subtract(totalCredits);
+      
+      // Check if balanced (variance is zero)
+      boolean isBalanced = variance.compareTo(BigDecimal.ZERO) == 0;
+      
+      return new com.bansaiyai.bansaiyai.dto.dashboard.TrialBalanceDTO(
+          totalDebits,
+          totalCredits,
+          variance,
+          isBalanced,
+          period
+      );
+    } catch (Exception e) {
+      log.error("Error calculating trial balance: {}", e.getMessage());
+      return new com.bansaiyai.bansaiyai.dto.dashboard.TrialBalanceDTO(
+          BigDecimal.ZERO,
+          BigDecimal.ZERO,
+          BigDecimal.ZERO,
+          true,
+          "Unknown"
+      );
+    }
+  }
+
+  /**
+   * Convert period string from "MONTH YEAR" format to "YYYY-MM" format
+   * Example: "AUGUST 2023" -> "2023-08"
+   */
+  private String convertPeriodToKey(String period) {
+    try {
+      String[] parts = period.split(" ");
+      if (parts.length != 2) {
+        // If format is unexpected, use current date
+        LocalDate now = LocalDate.now();
+        return String.format("%d-%02d", now.getYear(), now.getMonthValue());
+      }
+      
+      String monthStr = parts[0].toUpperCase();
+      String yearStr = parts[1];
+      
+      // Map month name to number
+      int monthNum = switch (monthStr) {
+        case "JANUARY" -> 1;
+        case "FEBRUARY" -> 2;
+        case "MARCH" -> 3;
+        case "APRIL" -> 4;
+        case "MAY" -> 5;
+        case "JUNE" -> 6;
+        case "JULY" -> 7;
+        case "AUGUST" -> 8;
+        case "SEPTEMBER" -> 9;
+        case "OCTOBER" -> 10;
+        case "NOVEMBER" -> 11;
+        case "DECEMBER" -> 12;
+        default -> LocalDate.now().getMonthValue();
+      };
+      
+      return String.format("%s-%02d", yearStr, monthNum);
+    } catch (Exception e) {
+      log.error("Error converting period to key: {}", e.getMessage());
+      LocalDate now = LocalDate.now();
+      return String.format("%d-%02d", now.getYear(), now.getMonthValue());
+    }
+  }
+
+  /**
+   * Count unclassified transactions (transactions without accounting entries)
+   * An unclassified transaction is one that doesn't have a corresponding AccountingEntry
+   */
+  public int countUnclassifiedTransactions() {
+    try {
+      // Get all saving transaction IDs
+      List<Long> savingTransactionIds = savingTransactionRepository.findAll().stream()
+          .filter(txn -> !txn.getIsReversed())
+          .map(SavingTransaction::getId)
+          .collect(Collectors.toList());
+      
+      // Get all payment IDs
+      List<Long> paymentIds = paymentRepository.findAll().stream()
+          .filter(p -> p.getPaymentStatus() == PaymentStatus.COMPLETED)
+          .map(Payment::getId)
+          .collect(Collectors.toList());
+      
+      // Get all accounting entries that reference transactions
+      List<AccountingEntry> accountingEntries = accountingRepository.findAll();
+      
+      // Extract referenced transaction IDs from accounting entries
+      List<Long> classifiedSavingTransactionIds = accountingEntries.stream()
+          .filter(entry -> "SAVINGS".equals(entry.getReferenceType()) || "SAVING_TRANSACTION".equals(entry.getReferenceType()))
+          .map(AccountingEntry::getReferenceId)
+          .filter(id -> id != null)
+          .collect(Collectors.toList());
+      
+      List<Long> classifiedPaymentIds = accountingEntries.stream()
+          .filter(entry -> "PAYMENT".equals(entry.getReferenceType()) || "LOAN_PAYMENT".equals(entry.getReferenceType()))
+          .map(AccountingEntry::getReferenceId)
+          .filter(id -> id != null)
+          .collect(Collectors.toList());
+      
+      // Count unclassified transactions
+      long unclassifiedSavingTransactions = savingTransactionIds.stream()
+          .filter(id -> !classifiedSavingTransactionIds.contains(id))
+          .count();
+      
+      long unclassifiedPayments = paymentIds.stream()
+          .filter(id -> !classifiedPaymentIds.contains(id))
+          .count();
+      
+      return (int) (unclassifiedSavingTransactions + unclassifiedPayments);
+    } catch (Exception e) {
+      log.error("Error counting unclassified transactions: {}", e.getMessage());
+      return 0;
+    }
+  }
+
+  /**
+   * Get quick actions based on user role
+   */
+  public List<DashboardDTO.QuickAction> getQuickActions(String role) {
+    List<DashboardDTO.QuickAction> actions = new ArrayList<>();
+
+    if (role == null) {
+      return actions;
+    }
+
+    switch (role) {
+      case "PRESIDENT":
+      case "SECRETARY":
+      case "OFFICER":
+        actions.add(DashboardDTO.QuickAction.builder()
+            .id("approve-loans")
+            .title("Approve Loans")
+            .description("Review pending loan applications")
+            .icon("CheckCircle")
+            .route("/loans/approvals")
+            .permission("LOAN_APPROVE")
+            .priority(1)
+            .build());
+        actions.add(DashboardDTO.QuickAction.builder()
+            .id("verify-payments")
+            .title("Verify Payments")
+            .description("Verify incoming payments")
+            .icon("Payment")
+            .route("/payments/verification")
+            .permission("PAYMENT_VERIFY")
+            .priority(2)
+            .build());
+        actions.add(DashboardDTO.QuickAction.builder()
+            .id("add-member")
+            .title("Add Member")
+            .description("Register a new member")
+            .icon("PersonAdd")
+            .route("/members/new")
+            .permission("MEMBER_CREATE")
+            .priority(3)
+            .build());
+        break;
+      case "MEMBER":
+        actions.add(DashboardDTO.QuickAction.builder()
+            .id("apply-loan")
+            .title("Apply for Loan")
+            .description("Submit a new loan application")
+            .icon("MonetizationOn")
+            .route("/loans/apply")
+            .permission("LOAN_CREATE")
+            .priority(1)
+            .build());
+        actions.add(DashboardDTO.QuickAction.builder()
+            .id("view-statement")
+            .title("View Statement")
+            .description("View account statement")
+            .icon("Receipt")
+            .route("/statements")
+            .permission("STATEMENT_VIEW")
+            .priority(2)
+            .build());
+        break;
+    }
+
+    return actions;
+  }
+
+  /**
+   * Generate financial statement previews for Secretary Dashboard
+   * Includes income vs expenses bar chart and asset distribution pie chart
+   */
+  public com.bansaiyai.bansaiyai.dto.dashboard.FinancialPreviewsDTO generateFinancialPreviews() {
+    try {
+      // Get current fiscal period
+      com.bansaiyai.bansaiyai.dto.dashboard.FiscalPeriodDTO fiscalPeriod = getCurrentFiscalPeriod();
+      String period = fiscalPeriod.getPeriod();
+      String fiscalPeriodKey = convertPeriodToKey(period);
+      
+      // Get all accounting entries for the fiscal period
+      List<AccountingEntry> entries = accountingRepository.findByFiscalPeriod(fiscalPeriodKey);
+      
+      // Calculate income data (4xxx = Income accounts)
+      BigDecimal interestIncome = entries.stream()
+          .filter(e -> e.getAccountCode() != null && e.getAccountCode().startsWith("4"))
+          .map(e -> {
+            BigDecimal credit = e.getCredit() != null ? e.getCredit() : BigDecimal.ZERO;
+            BigDecimal debit = e.getDebit() != null ? e.getDebit() : BigDecimal.ZERO;
+            return credit.subtract(debit); // Net income (credits - debits)
+          })
+          .reduce(BigDecimal.ZERO, BigDecimal::add);
+      
+      // Calculate expenses (5xxx = Expense accounts)
+      BigDecimal expenses = entries.stream()
+          .filter(e -> e.getAccountCode() != null && e.getAccountCode().startsWith("5"))
+          .map(e -> {
+            BigDecimal debit = e.getDebit() != null ? e.getDebit() : BigDecimal.ZERO;
+            BigDecimal credit = e.getCredit() != null ? e.getCredit() : BigDecimal.ZERO;
+            return debit.subtract(credit); // Net expenses (debits - credits)
+          })
+          .reduce(BigDecimal.ZERO, BigDecimal::add);
+      
+      // Calculate asset distribution (1xxx = Asset accounts)
+      BigDecimal cashAndBank = entries.stream()
+          .filter(e -> e.getAccountCode() != null && 
+                      (e.getAccountCode().startsWith("100") || e.getAccountCode().startsWith("101")))
+          .map(e -> {
+            BigDecimal debit = e.getDebit() != null ? e.getDebit() : BigDecimal.ZERO;
+            BigDecimal credit = e.getCredit() != null ? e.getCredit() : BigDecimal.ZERO;
+            return debit.subtract(credit); // Net asset balance (debits - credits)
+          })
+          .reduce(BigDecimal.ZERO, BigDecimal::add);
+      
+      BigDecimal loansReceivable = entries.stream()
+          .filter(e -> e.getAccountCode() != null && e.getAccountCode().startsWith("12"))
+          .map(e -> {
+            BigDecimal debit = e.getDebit() != null ? e.getDebit() : BigDecimal.ZERO;
+            BigDecimal credit = e.getCredit() != null ? e.getCredit() : BigDecimal.ZERO;
+            return debit.subtract(credit);
+          })
+          .reduce(BigDecimal.ZERO, BigDecimal::add);
+      
+      BigDecimal otherAssets = entries.stream()
+          .filter(e -> e.getAccountCode() != null && 
+                      e.getAccountCode().startsWith("1") && 
+                      !e.getAccountCode().startsWith("100") && 
+                      !e.getAccountCode().startsWith("101") && 
+                      !e.getAccountCode().startsWith("12"))
+          .map(e -> {
+            BigDecimal debit = e.getDebit() != null ? e.getDebit() : BigDecimal.ZERO;
+            BigDecimal credit = e.getCredit() != null ? e.getCredit() : BigDecimal.ZERO;
+            return debit.subtract(credit);
+          })
+          .reduce(BigDecimal.ZERO, BigDecimal::add);
+      
+      // Build income chart data
+      List<String> incomeLabels = List.of("Income", "Expenses");
+      java.util.Map<String, Object> incomeDatasets = new java.util.HashMap<>();
+      incomeDatasets.put("income", interestIncome);
+      incomeDatasets.put("expenses", expenses);
+      
+      com.bansaiyai.bansaiyai.dto.dashboard.FinancialPreviewsDTO.IncomeChartData incomeChartData = 
+          new com.bansaiyai.bansaiyai.dto.dashboard.FinancialPreviewsDTO.IncomeChartData(
+              incomeLabels, 
+              incomeDatasets
+          );
+      
+      // Build balance sheet chart data
+      List<String> balanceLabels = List.of("Cash & Bank", "Loans Receivable", "Other Assets");
+      java.util.Map<String, Object> balanceDatasets = new java.util.HashMap<>();
+      balanceDatasets.put("cashAndBank", cashAndBank);
+      balanceDatasets.put("loansReceivable", loansReceivable);
+      balanceDatasets.put("otherAssets", otherAssets);
+      
+      com.bansaiyai.bansaiyai.dto.dashboard.FinancialPreviewsDTO.BalanceSheetChartData balanceChartData = 
+          new com.bansaiyai.bansaiyai.dto.dashboard.FinancialPreviewsDTO.BalanceSheetChartData(
+              balanceLabels, 
+              balanceDatasets
+          );
+      
+      return new com.bansaiyai.bansaiyai.dto.dashboard.FinancialPreviewsDTO(
+          incomeChartData,
+          balanceChartData
+      );
+    } catch (Exception e) {
+      log.error("Error generating financial previews: {}", e.getMessage());
+      // Return empty data on error
+      return new com.bansaiyai.bansaiyai.dto.dashboard.FinancialPreviewsDTO();
     }
   }
 }

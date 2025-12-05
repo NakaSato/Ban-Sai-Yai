@@ -47,4 +47,24 @@ public class MemberService {
   public Optional<Member> getMemberByUserUserId(Long userId) {
     return memberRepository.findByUserId(userId);
   }
+
+  public MemberStatistics getMemberStatistics() {
+    long totalMembers = memberRepository.count();
+    long activeMembers = memberRepository.countActiveMembers();
+    long inactiveMembers = memberRepository.countInactiveMembers();
+
+    return MemberStatistics.builder()
+        .totalMembers(totalMembers)
+        .activeMembers(activeMembers)
+        .inactiveMembers(inactiveMembers)
+        .build();
+  }
+
+  @lombok.Data
+  @lombok.Builder
+  public static class MemberStatistics {
+    private long totalMembers;
+    private long activeMembers;
+    private long inactiveMembers;
+  }
 }

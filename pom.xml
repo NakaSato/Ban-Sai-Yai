@@ -30,7 +30,7 @@
 		<java.version>21</java.version>
 		<spring-cloud.version>2023.0.0</spring-cloud.version>
 		<testcontainers.version>1.19.3</testcontainers.version>
-		<jacoco.version>0.8.8</jacoco.version>
+		<jacoco.version>0.8.11</jacoco.version>
 	</properties>
 	<dependencies>
 		<dependency>
@@ -145,6 +145,13 @@
 			<optional>true</optional>
 		</dependency>
 
+		<!-- Dotenv for .env file support -->
+		<dependency>
+			<groupId>me.paulschwarz</groupId>
+			<artifactId>spring-dotenv</artifactId>
+			<version>4.0.0</version>
+		</dependency>
+
 		<!-- Test Dependencies -->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
@@ -169,6 +176,24 @@
 			<artifactId>mariadb</artifactId>
 			<scope>test</scope>
 		</dependency>
+		
+		<!-- jqwik for property-based testing -->
+		<dependency>
+			<groupId>net.jqwik</groupId>
+			<artifactId>jqwik</artifactId>
+			<version>1.8.2</version>
+			<scope>test</scope>
+		</dependency>
+
+		<!-- Redis for caching (optional but recommended) -->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-data-redis</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-cache</artifactId>
+		</dependency>
 	</dependencies>
 
 	<dependencyManagement>
@@ -185,6 +210,18 @@
 
 	<build>
 		<plugins>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-compiler-plugin</artifactId>
+				<configuration>
+					<annotationProcessorPaths>
+						<path>
+							<groupId>org.projectlombok</groupId>
+							<artifactId>lombok</artifactId>
+						</path>
+					</annotationProcessorPaths>
+				</configuration>
+			</plugin>
 			<plugin>
 				<groupId>org.springframework.boot</groupId>
 				<artifactId>spring-boot-maven-plugin</artifactId>

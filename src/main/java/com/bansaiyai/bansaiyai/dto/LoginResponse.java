@@ -5,6 +5,8 @@ import java.util.List;
 public class LoginResponse {
 
   private String token;
+  private String refreshToken;
+  private Long expiresIn;
   private String type = "Bearer";
   private Long id;
   private Long userId;
@@ -21,6 +23,22 @@ public class LoginResponse {
 
   public void setToken(String token) {
     this.token = token;
+  }
+
+  public String getRefreshToken() {
+    return refreshToken;
+  }
+
+  public void setRefreshToken(String refreshToken) {
+    this.refreshToken = refreshToken;
+  }
+
+  public Long getExpiresIn() {
+    return expiresIn;
+  }
+
+  public void setExpiresIn(Long expiresIn) {
+    this.expiresIn = expiresIn;
   }
 
   public String getType() {

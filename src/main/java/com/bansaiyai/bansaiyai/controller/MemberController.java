@@ -14,7 +14,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/members")
+@RequestMapping("/members")
 @CrossOrigin(origins = "*", maxAge = 3600)
 public class MemberController {
 
@@ -97,5 +97,12 @@ public class MemberController {
   public ResponseEntity<List<Member>> getInactiveMembers() {
     List<Member> inactiveMembers = memberService.getInactiveMembers();
     return ResponseEntity.ok(inactiveMembers);
+  }
+
+  @GetMapping("/statistics")
+  @PreAuthorize("hasAnyRole('PRESIDENT', 'SECRETARY', 'OFFICER')")
+  public ResponseEntity<MemberService.MemberStatistics> getMemberStatistics() {
+    MemberService.MemberStatistics stats = memberService.getMemberStatistics();
+    return ResponseEntity.ok(stats);
   }
 }

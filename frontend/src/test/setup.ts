@@ -4,13 +4,28 @@ import { configure } from "@testing-library/react";
 // Configure React Testing Library
 configure({ testIdAttribute: "data-testid" });
 
+// Mock import.meta for Vite environment variables
+(global as any).import = {
+  meta: {
+    env: {
+      DEV: false,
+      PROD: true,
+      MODE: 'test',
+    },
+  },
+};
+
 // Mock IntersectionObserver
 global.IntersectionObserver = class IntersectionObserver {
+  root = null;
+  rootMargin = '';
+  thresholds = [];
   constructor() {}
   disconnect() {}
   observe() {}
   unobserve() {}
-};
+  takeRecords() { return []; }
+} as any;
 
 // Mock ResizeObserver
 global.ResizeObserver = class ResizeObserver {
@@ -18,7 +33,7 @@ global.ResizeObserver = class ResizeObserver {
   disconnect() {}
   observe() {}
   unobserve() {}
-};
+} as any;
 
 // Mock matchMedia
 Object.defineProperty(window, "matchMedia", {

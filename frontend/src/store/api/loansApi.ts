@@ -192,7 +192,7 @@ export const loansApi = apiSlice.injectEndpoints({
       newApplicationsThisMonth: number;
       monthlyDisbursements: number;
     }, void>({
-      query: () => '/loans/stats',
+      query: () => '/loans/statistics',
       providesTags: ['Dashboard'],
     }),
 

@@ -82,4 +82,6 @@ public interface LoanRepository extends JpaRepository<Loan, Long> {
 
   @Query("SELECT l FROM Loan l WHERE l.status = :status AND l.maturityDate < CURRENT_DATE")
   List<Loan> findOverdueLoans();
+
+  List<Loan> findTop10ByOrderByCreatedAtDesc();
 }

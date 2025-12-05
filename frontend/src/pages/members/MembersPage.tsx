@@ -1,6 +1,24 @@
 import React from 'react';
 import { Typography, Paper, Box } from '@mui/material';
+// import LazyDataGrid from '@/components/LazyDataGrid';
 
+/**
+ * Members management page
+ * 
+ * When implementing the members table, use LazyDataGrid instead of DataGrid:
+ * 
+ * Example:
+ * import LazyDataGrid from '@/components/LazyDataGrid';
+ * 
+ * <LazyDataGrid
+ *   rows={members}
+ *   columns={columns}
+ *   pageSize={10}
+ *   ...other props
+ * />
+ * 
+ * This ensures the DataGrid library is lazy-loaded, reducing initial bundle size.
+ */
 const MembersPage: React.FC = () => {
   return (
     <Box>
@@ -9,6 +27,9 @@ const MembersPage: React.FC = () => {
       </Typography>
       <Paper sx={{ p: 2 }}>
         <Typography>Members management page - Coming soon</Typography>
+        <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
+          Note: When implementing the members table, use LazyDataGrid for optimal performance.
+        </Typography>
       </Paper>
     </Box>
   );

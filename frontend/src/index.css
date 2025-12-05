@@ -31,12 +31,19 @@ body {
   margin: 0;
   min-width: 320px;
   min-height: 100vh;
+  overflow-x: hidden; /* Prevent horizontal scrolling */
 }
 
 /* Remove default flex from body to avoid conflicts with Material-UI */
 #root {
   width: 100%;
   height: 100vh;
+  overflow-x: hidden; /* Prevent horizontal scrolling */
+}
+
+/* Ensure all elements respect box-sizing for mobile */
+* {
+  box-sizing: border-box;
 }
 
 h1 {

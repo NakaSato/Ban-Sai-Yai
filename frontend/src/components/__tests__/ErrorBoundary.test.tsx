@@ -1,5 +1,6 @@
 import React from "react";
-import { screen, fireEvent } from "@testing-library/react";
+import { render, screen, fireEvent } from "@testing-library/react";
+import "@testing-library/jest-dom";
 import ErrorBoundary from "../ErrorBoundary";
 
 // Component that throws an error for testing
@@ -15,6 +16,9 @@ const ThrowErrorComponent: React.FC<{ shouldThrow: boolean }> = ({
 describe("ErrorBoundary", () => {
   beforeEach(() => {
     jest.spyOn(console, "error").mockImplementation(() => {});
+    // Reset to production mode by default
+    (global as any).import.meta.env.DEV = false;
+    (global as any).import.meta.env.PROD = true;
   });
 
   afterEach(() => {
@@ -48,8 +52,9 @@ describe("ErrorBoundary", () => {
   });
 
   it("should display error details in development mode", () => {
-    const originalEnv = import.meta.env.DEV;
-    import.meta.env.DEV = true;
+    // Set to development mode
+    (global as any).import.meta.env.DEV = true;
+    (global as any).import.meta.env.PROD = false;
 
     render(
       <ErrorBoundary>
@@ -61,8 +66,6 @@ describe("ErrorBoundary", () => {
       screen.getByText("Error Details (Development Only):")
     ).toBeInTheDocument();
     expect(screen.getByText(/Test error/)).toBeInTheDocument();
-
-    import.meta.env.DEV = originalEnv;
   });
 
   it("should reset error state when reset button is clicked", () => {

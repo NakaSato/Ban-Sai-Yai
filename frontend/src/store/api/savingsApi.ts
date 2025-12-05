@@ -215,7 +215,7 @@ export const savingsApi = apiSlice.injectEndpoints({
       accountsByStatus: Record<AccountStatus, number>;
       averageBalance: number;
     }, void>({
-      query: () => '/savings/stats',
+      query: () => '/savings/statistics',
       providesTags: ['Dashboard'],
     }),
 

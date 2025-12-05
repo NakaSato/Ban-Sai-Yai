@@ -21,19 +21,23 @@ export enum UserRole {
 export interface AuthState {
   user: User | null;
   token: string | null;
+  refreshToken: string | null;
   isAuthenticated: boolean;
   isLoading: boolean;
+  isInitialized: boolean;
   error: string | null;
 }
 
 export interface LoginRequest {
   username: string;
   password: string;
+  rememberMe?: boolean;
 }
 
 export interface LoginResponse {
   user: User;
   token: string;
+  refreshToken?: string;
   expiresIn: number;
 }
 
@@ -309,6 +313,7 @@ export interface DashboardStats {
   totalLoanPortfolio: number;
   overduePayments: number;
   monthlyRepayments: number;
+  monthlyRevenue: number;
   newMembersThisMonth: number;
   loanApplicationsPending: number;
 }
@@ -322,6 +327,51 @@ export interface ChartData {
     borderColor?: string;
     borderWidth?: number;
   }[];
+}
+
+// Dashboard Widget Types
+export interface FiscalPeriod {
+  period: string;
+  status: 'OPEN' | 'CLOSED';
+}
+
+export interface MemberSearchResult {
+  memberId: number;
+  firstName: string;
+  lastName: string;
+  thumbnailUrl: string;
+  status: string;
+}
+
+export interface MemberFinancials {
+  savingsBalance: number;
+  loanPrincipal: number;
+  loanStatus: string;
+}
+
+export interface DepositRequest {
+  memberId: number;
+  amount: number;
+  notes?: string;
+}
+
+export interface LoanPaymentRequest {
+  memberId: number;
+  loanId: number;
+  principalAmount: number;
+  interestAmount: number;
+  fineAmount?: number;
+  notes?: string;
+}
+
+export interface TransactionResponse {
+  transactionId: number | null;
+  transactionNumber: string | null;
+  type: string;
+  amount: number;
+  timestamp: string;
+  status: string;
+  message: string;
 }
 
 // Utility Types

@@ -30,7 +30,7 @@ import java.util.Map;
  * operations.
  */
 @RestController
-@RequestMapping("/api/savings")
+@RequestMapping("/savings")
 @Slf4j
 public class SavingController {
 
@@ -287,6 +287,21 @@ public class SavingController {
     } catch (Exception e) {
       log.error("Error getting portfolio summary: {}", e.getMessage());
       return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+    }
+  }
+
+  /**
+   * Get global saving statistics
+   */
+  @GetMapping("/statistics")
+  @PreAuthorize("hasRole('ADMIN') or hasRole('PRESIDENT') or hasRole('SECRETARY')")
+  public ResponseEntity<SavingService.SavingStatistics> getSavingStatistics() {
+    try {
+      SavingService.SavingStatistics stats = savingService.getSavingStatistics();
+      return ResponseEntity.ok(stats);
+    } catch (Exception e) {
+      log.error("Error getting saving statistics: {}", e.getMessage());
+      return ResponseEntity.badRequest().build();
     }
   }
 

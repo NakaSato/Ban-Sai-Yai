@@ -14,6 +14,8 @@ services:
       - SPRING_JPA_SHOW_SQL=true
       - SPRING_JPA_PROPERTIES_HIBERNATE_DIALECT=org.hibernate.dialect.MariaDBDialect
       - SPRING_FLYWAY_ENABLED=false
+      - RATE_LIMIT_MAX_ATTEMPTS=999999
+      - RATE_LIMIT_LOCKOUT_MINUTES=0
     depends_on:
       - mariadb
     restart: unless-stopped

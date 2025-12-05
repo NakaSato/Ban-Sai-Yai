@@ -37,6 +37,9 @@ public class UserPrincipal implements UserDetails {
         .map(permission -> new SimpleGrantedAuthority(permission))
         .collect(Collectors.toList());
 
+    // Add role as authority
+    authorities.add(new SimpleGrantedAuthority("ROLE_" + user.getRole().name()));
+
     return new UserPrincipal(
         user.getId(),
         user.getUsername(),
