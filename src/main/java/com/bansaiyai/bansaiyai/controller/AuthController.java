@@ -7,6 +7,12 @@ import com.bansaiyai.bansaiyai.entity.User;
 import com.bansaiyai.bansaiyai.security.UserPrincipal;
 import com.bansaiyai.bansaiyai.service.AuthService;
 import com.bansaiyai.bansaiyai.service.TokenService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -25,6 +31,7 @@ import java.util.Map;
 @RestController
 @RequestMapping("/auth")
 @CrossOrigin(origins = "*", maxAge = 3600)
+@Tag(name = "Authentication", description = "Authentication and authorization endpoints")
 public class AuthController {
 
   @Autowired
@@ -36,6 +43,12 @@ public class AuthController {
   @Autowired
   private TokenService tokenService;
 
+  @Operation(summary = "Authenticate user", description = "Authenticate user with username and password, returns JWT tokens")
+  @ApiResponses(value = {
+      @ApiResponse(responseCode = "200", description = "Login successful", content = @Content(mediaType = "application/json", schema = @Schema(implementation = LoginResponse.class))),
+      @ApiResponse(responseCode = "401", description = "Invalid credentials"),
+      @ApiResponse(responseCode = "429", description = "Too many login attempts")
+  })
   @PostMapping("/login")
   public ResponseEntity<?> authenticateUser(@Valid @RequestBody LoginRequest loginRequest) {
     String username = loginRequest.getUsername();
@@ -78,6 +91,11 @@ public class AuthController {
     }
   }
 
+  @Operation(summary = "Register new user", description = "Register a new user account")
+  @ApiResponses(value = {
+      @ApiResponse(responseCode = "200", description = "Registration successful"),
+      @ApiResponse(responseCode = "400", description = "Invalid request data or user already exists")
+  })
   @PostMapping("/register")
   public ResponseEntity<?> registerUser(@Valid @RequestBody SignUpRequest signUpRequest) {
     try {
@@ -93,6 +111,11 @@ public class AuthController {
     }
   }
 
+  @Operation(summary = "Logout user", description = "Logout current user and revoke all refresh tokens")
+  @ApiResponses(value = {
+      @ApiResponse(responseCode = "200", description = "Logout successful"),
+      @ApiResponse(responseCode = "401", description = "Not authenticated")
+  })
   @PostMapping("/logout")
   @PreAuthorize("isAuthenticated()")
   public ResponseEntity<?> logoutUser(@RequestBody(required = false) Map<String, String> request) {
@@ -123,6 +146,12 @@ public class AuthController {
     }
   }
 
+  @Operation(summary = "Refresh access token", description = "Get new access token using refresh token with token rotation")
+  @ApiResponses(value = {
+      @ApiResponse(responseCode = "200", description = "Token refreshed successfully"),
+      @ApiResponse(responseCode = "400", description = "Refresh token is required"),
+      @ApiResponse(responseCode = "401", description = "Invalid or expired refresh token")
+  })
   @PostMapping("/refresh")
   public ResponseEntity<?> refreshToken(@RequestBody Map<String, String> request) {
     String refreshToken = request.get("token");

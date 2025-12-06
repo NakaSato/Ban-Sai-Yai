@@ -66,10 +66,41 @@ management:
   endpoints:
     web:
       exposure:
-        include: health,info,metrics
+        include: health,info,metrics,prometheus,loggers,caches
+      base-path: /actuator
   endpoint:
     health:
       show-details: when-authorized
+      show-components: when-authorized
+      probes:
+        enabled: true
+    info:
+      enabled: true
+  info:
+    env:
+      enabled: true
+    build:
+      enabled: true
+    git:
+      enabled: true
+      mode: full
+  health:
+    db:
+      enabled: true
+    diskspace:
+      enabled: true
+    redis:
+      enabled: ${CACHE_TYPE:none}
+
+# Application info for actuator /info endpoint
+info:
+  app:
+    name: ${spring.application.name}
+    description: Ban Sai Yai Savings Group Financial Accounting System
+    version: 1.0.0
+    encoding: UTF-8
+    java:
+      version: ${java.version}
 
 app:
   upload:
@@ -97,6 +128,23 @@ logging:
   pattern:
     console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
     file: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
+
+# SpringDoc OpenAPI Configuration
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+    enabled: ${SPRINGDOC_ENABLED:true}
+  swagger-ui:
+    path: /swagger-ui.html
+    enabled: ${SPRINGDOC_ENABLED:true}
+    operations-sorter: method
+    tags-sorter: alpha
+    doc-expansion: none
+    default-models-expand-depth: 2
+    display-request-duration: true
+  show-actuator: true
+  packages-to-scan: com.bansaiyai.bansaiyai.controller
+  paths-to-match: /**
 
 ---
 spring:
