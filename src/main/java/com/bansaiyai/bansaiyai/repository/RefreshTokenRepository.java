@@ -21,6 +21,7 @@ public interface RefreshTokenRepository extends JpaRepository<RefreshToken, Long
 
   /**
    * Find a refresh token by its token string.
+   * 
    * @param token the token string
    * @return Optional containing the RefreshToken if found
    */
@@ -28,6 +29,7 @@ public interface RefreshTokenRepository extends JpaRepository<RefreshToken, Long
 
   /**
    * Find all refresh tokens for a specific user.
+   * 
    * @param user the user
    * @return list of refresh tokens
    */
@@ -35,8 +37,9 @@ public interface RefreshTokenRepository extends JpaRepository<RefreshToken, Long
 
   /**
    * Find all valid (non-revoked, non-expired) tokens for a user.
+   * 
    * @param user the user
-   * @param now current timestamp
+   * @param now  current timestamp
    * @return list of valid refresh tokens
    */
   @Query("SELECT rt FROM RefreshToken rt WHERE rt.user = :user AND rt.revoked = false AND rt.expiresAt > :now")
@@ -45,6 +48,7 @@ public interface RefreshTokenRepository extends JpaRepository<RefreshToken, Long
   /**
    * Delete all refresh tokens for a specific user.
    * Used during logout to invalidate all sessions.
+   * 
    * @param user the user
    */
   void deleteByUser(User user);
@@ -52,6 +56,7 @@ public interface RefreshTokenRepository extends JpaRepository<RefreshToken, Long
   /**
    * Delete all expired refresh tokens.
    * Used for cleanup of old tokens.
+   * 
    * @param now current timestamp
    */
   @Modifying
@@ -60,6 +65,7 @@ public interface RefreshTokenRepository extends JpaRepository<RefreshToken, Long
 
   /**
    * Revoke all tokens for a specific user.
+   * 
    * @param user the user
    */
   @Modifying
@@ -68,10 +74,31 @@ public interface RefreshTokenRepository extends JpaRepository<RefreshToken, Long
 
   /**
    * Check if a token exists and is valid.
+   * 
    * @param token the token string
-   * @param now current timestamp
+   * @param now   current timestamp
    * @return true if token exists and is valid
    */
   @Query("SELECT CASE WHEN COUNT(rt) > 0 THEN true ELSE false END FROM RefreshToken rt WHERE rt.token = :token AND rt.revoked = false AND rt.expiresAt > :now")
   boolean existsValidToken(@Param("token") String token, @Param("now") LocalDateTime now);
+
+  /**
+   * Delete expired tokens and return count.
+   * 
+   * @param now current timestamp
+   * @return number of deleted tokens
+   */
+  @Modifying
+  @Query("DELETE FROM RefreshToken rt WHERE rt.expiresAt < :now")
+  int deleteByExpiryDateBefore(@Param("now") LocalDateTime now);
+
+  /**
+   * Delete revoked tokens older than cutoff.
+   * 
+   * @param cutoff cutoff timestamp
+   * @return number of deleted tokens
+   */
+  @Modifying
+  @Query("DELETE FROM RefreshToken rt WHERE rt.revoked = true AND rt.expiresAt < :cutoff")
+  int deleteByIsRevokedTrueAndExpiryDateBefore(@Param("cutoff") LocalDateTime cutoff);
 }

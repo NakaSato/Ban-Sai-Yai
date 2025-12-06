@@ -202,6 +202,12 @@
 			<artifactId>spring-boot-starter-cache</artifactId>
 		</dependency>
 
+		<!-- Caffeine for local caching (fallback when Redis unavailable) -->
+		<dependency>
+			<groupId>com.github.ben-manes.caffeine</groupId>
+			<artifactId>caffeine</artifactId>
+		</dependency>
+
 		<!-- SpringDoc OpenAPI for API documentation -->
 		<dependency>
 			<groupId>org.springdoc</groupId>
