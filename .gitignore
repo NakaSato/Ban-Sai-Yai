@@ -15,6 +15,7 @@ dist-ssr
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
+!.vscode/settings.json
 .idea
 .DS_Store
 *.suo
@@ -25,9 +26,80 @@ dist-ssr
 
 # Maven
 target/
+!.mvn/wrapper/maven-wrapper.jar
+!**/src/main/**/target/
+!**/src/test/**/target/
+
+# Java
+*.class
+*.jar
+*.war
+*.ear
+*.nar
+
+# Spring Boot
+HELP.md
+.mvn/
+mvnw
+mvnw.cmd
+
+# Frontend
+frontend/node_modules/
+frontend/dist/
+frontend/coverage/
+frontend/.cache/
+frontend/bun.lockb
+
+# Test files
+*.test.js.snap
+coverage/
+.nyc_output/
 
 # Environment Variables
 .env
 .env.*
 !.env.example
 
+# Docker
+docker-compose.override.yml
+
+# OS generated files
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# IDE
+*.iml
+*.ipr
+*.iws
+.project
+.classpath
+.settings/
+.factorypath
+
+# Compiled files
+*.com
+*.exe
+*.dll
+*.so
+*.dylib
+
+# Backup files
+*~
+*.bak
+*.tmp
+*.swp
+
+# Package files
+*.7z
+*.dmg
+*.gz
+*.iso
+*.rar
+*.tar
+*.zip
+
+# Misc
+.gradle/
+build/
+out/
