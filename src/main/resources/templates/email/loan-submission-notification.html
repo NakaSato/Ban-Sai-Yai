@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="th">
+  <head>
+    <meta charset="UTF-8" />
+    <style>
+      body {
+        font-family: "Sarabun", sans-serif;
+        line-height: 1.6;
+        color: #333;
+        max-width: 600px;
+        margin: 0 auto;
+        padding: 20px;
+        background-color: #f5f5f5;
+      }
+      .container {
+        background: white;
+        border-radius: 8px;
+        padding: 30px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      }
+      .header {
+        text-align: center;
+        border-bottom: 2px solid #4caf50;
+        padding-bottom: 20px;
+        margin-bottom: 20px;
+      }
+      .header h1 {
+        color: #4caf50;
+        margin: 0;
+        font-size: 24px;
+      }
+      .highlight {
+        background: #f0f7f0;
+        padding: 15px;
+        border-radius: 5px;
+        margin: 15px 0;
+      }
+      .amount {
+        font-size: 24px;
+        color: #4caf50;
+        font-weight: bold;
+      }
+      .footer {
+        text-align: center;
+        color: #666;
+        font-size: 12px;
+        border-top: 1px solid #eee;
+        padding-top: 20px;
+        margin-top: 20px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="header">
+        <h1 th:text="${appName}">Ban Sai Yai</h1>
+      </div>
+      <div class="content">
+        <h2>🔔 คำขอกู้ใหม่รอการอนุมัติ</h2>
+        <p>เรียน คุณ<span th:text="${approverName}">ผู้อนุมัติ</span>,</p>
+        <p>มีคำขอกู้ใหม่รอการพิจารณาอนุมัติ:</p>
+        <div class="highlight">
+          <p>
+            <strong>ชื่อสมาชิก:</strong> <span th:text="${memberName}">-</span>
+          </p>
+          <p>
+            <strong>ประเภทสินเชื่อ:</strong>
+            <span th:text="${loanType}">-</span>
+          </p>
+          <p>
+            <strong>จำนวนเงินขอกู้:</strong>
+            <span class="amount" th:text="${loanAmount}">฿0</span>
+          </p>
+          <p>
+            <strong>วันที่ยื่นคำขอ:</strong>
+            <span th:text="${applicationDate}">-</span>
+          </p>
+        </div>
+        <p>กรุณาเข้าสู่ระบบเพื่อตรวจสอบและดำเนินการอนุมัติ</p>
+      </div>
+      <div class="footer">
+        <p>
+          อีเมลนี้ส่งโดยอัตโนมัติจากระบบ
+          <span th:text="${appName}">Ban Sai Yai</span>
+        </p>
+      </div>
+    </div>
+  </body>
+</html>

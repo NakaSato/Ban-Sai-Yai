@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="th">
+  <head>
+    <meta charset="UTF-8" />
+    <style>
+      body {
+        font-family: "Sarabun", sans-serif;
+        line-height: 1.6;
+        color: #333;
+        max-width: 600px;
+        margin: 0 auto;
+        padding: 20px;
+        background-color: #f5f5f5;
+      }
+      .container {
+        background: white;
+        border-radius: 8px;
+        padding: 30px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      }
+      .header {
+        text-align: center;
+        border-bottom: 2px solid #7b1fa2;
+        padding-bottom: 20px;
+        margin-bottom: 20px;
+      }
+      .header h1 {
+        color: #7b1fa2;
+        margin: 0;
+        font-size: 24px;
+      }
+      .highlight {
+        background: #f3e5f5;
+        padding: 15px;
+        border-radius: 5px;
+        margin: 15px 0;
+        border-left: 4px solid #7b1fa2;
+      }
+      .btn {
+        display: inline-block;
+        background-color: #7b1fa2;
+        color: white !important;
+        padding: 12px 24px;
+        text-decoration: none;
+        border-radius: 5px;
+        margin: 20px 0;
+        font-weight: bold;
+      }
+      .btn:hover {
+        background-color: #6a1b9a;
+      }
+      .footer {
+        text-align: center;
+        color: #666;
+        font-size: 12px;
+        border-top: 1px solid #eee;
+        padding-top: 20px;
+        margin-top: 20px;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        margin: 15px 0;
+      }
+      th,
+      td {
+        padding: 10px;
+        text-align: left;
+        border-bottom: 1px solid #eee;
+      }
+      th {
+        background: #f3e5f5;
+        color: #7b1fa2;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="header">
+        <h1 th:text="${appName}">Ban Sai Yai</h1>
+      </div>
+      <div class="content">
+        <h2>👑 คำขอกู้รอการอนุมัติจากประธาน</h2>
+        <p>เรียน ท่านประธาน,</p>
+        <p>
+          มีคำขอกู้ที่ผ่านการตรวจสอบจากเลขานุการแล้ว
+          รอการอนุมัติขั้นสุดท้ายจากท่าน
+        </p>
+        <div class="highlight">
+          <p>
+            <strong>เลขที่คำขอกู้:</strong>
+            <span th:text="${loanNumber}">-</span>
+          </p>
+          <p>
+            <strong>จำนวนเงินที่ขอกู้:</strong>
+            <span th:text="${loanAmount}">฿0</span>
+          </p>
+        </div>
+        <table>
+          <tr>
+            <th>รายการ</th>
+            <th>รายละเอียด</th>
+          </tr>
+          <tr>
+            <td>ชื่อผู้ขอกู้</td>
+            <td th:text="${memberName}">-</td>
+          </tr>
+          <tr>
+            <td>เลขสมาชิก</td>
+            <td th:text="${memberNumber}">-</td>
+          </tr>
+          <tr>
+            <td>ประเภทเงินกู้</td>
+            <td th:text="${loanType}">-</td>
+          </tr>
+          <tr>
+            <td>วัตถุประสงค์</td>
+            <td th:text="${purpose}">-</td>
+          </tr>
+          <tr>
+            <td>ระยะเวลาผ่อน</td>
+            <td th:text="${term}">-</td>
+          </tr>
+          <tr>
+            <td>อัตราดอกเบี้ย</td>
+            <td th:text="${interestRate}">-</td>
+          </tr>
+          <tr>
+            <td>ทุนเรือนหุ้น</td>
+            <td th:text="${shareCapital}">-</td>
+          </tr>
+          <tr>
+            <td>ผู้แนะนำ</td>
+            <td th:text="${secretaryName}">-</td>
+          </tr>
+        </table>
+        <p style="text-align: center">
+          <a th:href="${reviewLink}" class="btn">ตรวจสอบและอนุมัติ</a>
+        </p>
+      </div>
+      <div class="footer">
+        <p>
+          อีเมลนี้ส่งโดยอัตโนมัติจากระบบ
+          <span th:text="${appName}">Ban Sai Yai</span>
+        </p>
+      </div>
+    </div>
+  </body>
+</html>
