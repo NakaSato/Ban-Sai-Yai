@@ -5,9 +5,10 @@
 
 // Validation patterns
 const EMAIL_PATTERN = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
-const PHONE_PATTERN = /^[0-9+\-()\\s]{8,20}$/;
+const PHONE_PATTERN = /^[0-9+\-() ]{8,20}$/;
 const THAI_ID_PATTERN = /^[0-9]{13}$/;
-const THAI_NAME_PATTERN = /^[\p{L}\s.'-]+$/u;
+// Thai name pattern: letters, marks (for Thai vowels/tones), spaces, and common punctuation
+const THAI_NAME_PATTERN = /^[\p{L}\p{M}\s.''-]+$/u;
 const NUMERIC_PATTERN = /^[0-9]+$/;
 const DECIMAL_PATTERN = /^[0-9]+(\.[0-9]+)?$/;
 
@@ -34,11 +35,13 @@ export function isValidEmail(email: string | null | undefined): boolean {
 
 /**
  * Validate Thai phone number format
+ * Supports: 0812345678, 081-234-5678, +66812345678, 02-123-4567
  */
 export function isValidPhone(phone: string | null | undefined): boolean {
   if (!phone) return false;
   const digits = phone.replace(/[^0-9]/g, "");
-  return digits.length >= 9 && digits.length <= 10 && PHONE_PATTERN.test(phone);
+  // Thai phone: 9-10 digits (local) or 11 digits (international +66)
+  return digits.length >= 9 && digits.length <= 11 && PHONE_PATTERN.test(phone);
 }
 
 /**

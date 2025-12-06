@@ -176,7 +176,12 @@ export function logError(
   context: string,
   error: FetchBaseQueryError | SerializedError | unknown
 ): void {
-  if (import.meta.env.DEV) {
+  // Check if we're in development mode - compatible with both Vite and Jest
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const g = globalThis as any;
+  const isDev =
+    g.process?.env?.NODE_ENV !== "production" || g.import?.meta?.env?.DEV;
+  if (isDev) {
     console.error(`[${context}] Error:`, error);
   }
 }
