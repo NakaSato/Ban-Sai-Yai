@@ -1,15 +1,22 @@
 package com.bansaiyai.bansaiyai.controller;
 
+import com.bansaiyai.bansaiyai.dto.PermissionRequest;
+import com.bansaiyai.bansaiyai.dto.RoleDto;
+import com.bansaiyai.bansaiyai.entity.Permission;
+import com.bansaiyai.bansaiyai.entity.Role;
 import com.bansaiyai.bansaiyai.entity.User;
+import com.bansaiyai.bansaiyai.service.RolePermissionService;
 import com.bansaiyai.bansaiyai.service.RoleService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
+import jakarta.validation.Valid;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -23,27 +30,41 @@ import java.util.stream.Collectors;
 public class RoleController {
 
   private final RoleService roleService;
+  private final RolePermissionService rolePermissionService;
 
   /**
-   * Get all available roles in the system
+   * Get all available roles in system
    */
   @GetMapping
   @PreAuthorize("hasAnyRole('ADMIN', 'PRESIDENT', 'SECRETARY')")
   public ResponseEntity<Map<String, Object>> getAllRoles() {
-    List<User.Role> roles = roleService.getAllRoles();
-    List<Map<String, Object>> roleDetails = roles.stream()
-        .map(role -> {
-          Map<String, Object> roleInfo = new HashMap<>();
-          roleInfo.put("name", role.name());
-          roleInfo.put("description", roleService.getRoleDescription(role));
-          roleInfo.put("permissions", roleService.getRolePermissions(role));
-          return roleInfo;
+    // Get roles from database entities using RolePermissionService
+    Map<String, Set<String>> rolePermissionMatrix = rolePermissionService.getRolePermissionMatrix();
+    List<RoleDto> roleDetails = rolePermissionMatrix.entrySet().stream()
+        .map(entry -> {
+          String roleName = entry.getKey();
+          Set<String> permissions = entry.getValue();
+
+          return RoleDto.builder()
+              .roleId(0) // Will be set when we get from proper repository
+              .roleName(roleName)
+              .description(getRoleDescriptionFromName(roleName))
+              .permissions(permissions.stream()
+                  .map(perm -> RoleDto.PermissionDto.builder()
+                      .permId(0) // Will be set when we get from proper repository
+                      .permSlug(perm)
+                      .module(extractModuleFromPermission(perm))
+                      .description("")
+                      .build())
+                  .collect(Collectors.toList()))
+              .createdAt(null) // Will be set when we get from proper repository
+              .build();
         })
         .collect(Collectors.toList());
 
     Map<String, Object> response = new HashMap<>();
     response.put("roles", roleDetails);
-    response.put("total", roles.size());
+    response.put("total", roleDetails.size());
 
     return ResponseEntity.ok(response);
   }
@@ -161,6 +182,114 @@ public class RoleController {
   }
 
   /**
+   * Get permissions for a specific role by ID
+   */
+  @GetMapping("/{id}/permissions")
+  @PreAuthorize("hasAnyRole('ADMIN', 'PRESIDENT', 'SECRETARY')")
+  public ResponseEntity<Map<String, Object>> getRolePermissionsById(@PathVariable Integer id) {
+    try {
+      String roleName = "ROLE_" + User.Role.values()[id].name();
+      Set<String> permissions = rolePermissionService.getPermissionsForRole(roleName);
+
+      Map<String, Object> response = new HashMap<>();
+      response.put("roleId", id);
+      response.put("roleName", roleName);
+      response.put("permissions", permissions);
+      response.put("permissionCount", permissions.size());
+
+      return ResponseEntity.ok(response);
+    } catch (Exception e) {
+      Map<String, Object> error = new HashMap<>();
+      error.put("error", "Role not found");
+      error.put("message", "Role with ID " + id + " does not exist");
+      return ResponseEntity.badRequest().body(error);
+    }
+  }
+
+  /**
+   * Add permission to role
+   */
+  @PostMapping("/{id}/permissions")
+  @PreAuthorize("hasAnyRole('ADMIN', 'PRESIDENT')")
+  public ResponseEntity<Map<String, Object>> addPermissionToRole(
+      @PathVariable Integer id,
+      @Valid @RequestBody PermissionRequest request) {
+
+    try {
+      String roleName = "ROLE_" + User.Role.values()[id].name();
+
+      // Add permission to role
+      rolePermissionService.addPermissionToRole(roleName, request.getPermissionSlug());
+
+      log.info("Added permission {} to role {}", request.getPermissionSlug(), roleName);
+
+      Map<String, Object> response = new HashMap<>();
+      response.put("roleId", id);
+      response.put("roleName", roleName);
+      response.put("permissionSlug", request.getPermissionSlug());
+      response.put("message", "Permission successfully added to role");
+
+      return ResponseEntity.ok(response);
+
+    } catch (IllegalArgumentException e) {
+      Map<String, Object> error = new HashMap<>();
+      error.put("error", "Validation failed");
+      error.put("message", e.getMessage());
+      return ResponseEntity.badRequest().body(error);
+    } catch (Exception e) {
+      log.error("Error adding permission to role", e);
+      Map<String, Object> error = new HashMap<>();
+      error.put("error", "Internal server error");
+      error.put("message", "Failed to add permission to role");
+      return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+    }
+  }
+
+  /**
+   * Remove permission from role
+   */
+  @DeleteMapping("/{id}/permissions/{permId}")
+  @PreAuthorize("hasAnyRole('ADMIN', 'PRESIDENT')")
+  public ResponseEntity<Map<String, Object>> removePermissionFromRole(
+      @PathVariable Integer id,
+      @PathVariable Integer permId) {
+
+    try {
+      String roleName = "ROLE_" + User.Role.values()[id].name();
+
+      // For simplicity, we'll use permId as permission slug - in real implementation
+      // you'd fetch the actual permission from database
+      String permissionSlug = "permission_" + permId;
+
+      // Remove permission from role
+      rolePermissionService.removePermissionFromRole(roleName, permissionSlug);
+
+      log.info("Removed permission {} from role {}", permissionSlug, roleName);
+
+      Map<String, Object> response = new HashMap<>();
+      response.put("roleId", id);
+      response.put("roleName", roleName);
+      response.put("permissionId", permId);
+      response.put("permissionSlug", permissionSlug);
+      response.put("message", "Permission successfully removed from role");
+
+      return ResponseEntity.ok(response);
+
+    } catch (IllegalArgumentException e) {
+      Map<String, Object> error = new HashMap<>();
+      error.put("error", "Validation failed");
+      error.put("message", e.getMessage());
+      return ResponseEntity.badRequest().body(error);
+    } catch (Exception e) {
+      log.error("Error removing permission from role", e);
+      Map<String, Object> error = new HashMap<>();
+      error.put("error", "Internal server error");
+      error.put("message", "Failed to remove permission from role");
+      return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+    }
+  }
+
+  /**
    * Get role statistics
    */
   @GetMapping("/statistics")
@@ -187,12 +316,42 @@ public class RoleController {
   }
 
   /**
+   * Helper method to get role description from role name
+   */
+  private String getRoleDescriptionFromName(String roleName) {
+    switch (roleName.replace("ROLE_", "")) {
+      case "ADMIN":
+        return "System Administrator - Full system access and user management";
+      case "PRESIDENT":
+        return "President - Organization leadership with full operational access";
+      case "SECRETARY":
+        return "Secretary - Record keeping and reporting responsibilities";
+      case "OFFICER":
+        return "Officer - Daily operations and member services";
+      case "MEMBER":
+        return "Member - Basic access to own information";
+      default:
+        return "Unknown role";
+    }
+  }
+
+  /**
+   * Helper method to extract module from permission slug
+   */
+  private String extractModuleFromPermission(String permissionSlug) {
+    if (permissionSlug.contains(".")) {
+      return permissionSlug.split("\\.")[0];
+    }
+    return permissionSlug;
+  }
+
+  /**
    * Helper method to get current user's role (simplified version)
-   * In a real implementation, you'd fetch this from the database
+   * In a real implementation, you'd fetch this from database
    */
   private User.Role getCurrentUserRole(Authentication authentication) {
     // This is a simplified approach. In a real application, you'd:
-    // 1. Get the current user from the database
+    // 1. Get the current user from database
     // 2. Return their actual role
 
     // For demo purposes, we'll extract role from authorities

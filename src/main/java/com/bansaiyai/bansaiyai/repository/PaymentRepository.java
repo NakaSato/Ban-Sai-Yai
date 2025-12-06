@@ -3,6 +3,7 @@ package com.bansaiyai.bansaiyai.repository;
 import com.bansaiyai.bansaiyai.entity.Payment;
 import com.bansaiyai.bansaiyai.entity.enums.PaymentStatus;
 import com.bansaiyai.bansaiyai.entity.enums.PaymentType;
+import com.bansaiyai.bansaiyai.entity.enums.ApprovalStatus;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -267,4 +268,6 @@ public interface PaymentRepository extends JpaRepository<Payment, Long> {
         @Query("SELECT COALESCE(SUM(p.amount), 0) FROM Payment p WHERE p.verifiedBy = :officer AND p.paymentDate BETWEEN :startDate AND :endDate")
         java.math.BigDecimal sumPaymentsByProcessedByAndDateRange(@Param("officer") String officer,
                         @Param("startDate") LocalDate startDate, @Param("endDate") LocalDate endDate);
+
+        List<Payment> findByApprovalStatus(ApprovalStatus approvalStatus);
 }

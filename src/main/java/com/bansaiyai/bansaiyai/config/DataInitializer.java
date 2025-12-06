@@ -24,11 +24,20 @@ public class DataInitializer implements CommandLineRunner {
 
   @Override
   public void run(String... args) throws Exception {
-    // Register all roles in the system
-    roleService.registerAllRoles();
+    // Only run initialization if no users exist (prevent repeated runs)
+    if (userRepository.count() == 0) {
+      log.info("Starting data initialization - no users found in database");
 
-    // Create default users for each role if they don't exist
-    createDefaultUsers();
+      // Register all roles in system
+      roleService.registerAllRoles();
+
+      // Create default users for each role
+      createDefaultUsers();
+
+      log.info("Data initialization completed");
+    } else {
+      log.info("Skipping data initialization - {} users already exist", userRepository.count());
+    }
   }
 
   private void createDefaultUsers() {

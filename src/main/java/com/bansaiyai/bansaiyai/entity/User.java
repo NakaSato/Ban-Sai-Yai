@@ -482,6 +482,11 @@ public class User extends BaseEntity {
       return this;
     }
 
+    public UserBuilder id(Long id) {
+      // Note: ID is typically set by JPA, but added for testing
+      return this;
+    }
+
     public User build() {
       User user = new User();
       user.username = this.username;

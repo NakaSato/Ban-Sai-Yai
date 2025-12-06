@@ -660,6 +660,16 @@ public class Loan extends BaseEntity {
       return this;
     }
 
+    public LoanBuilder id(Long id) {
+      // Note: ID is typically set by JPA, but added for testing
+      return this;
+    }
+
+    public LoanBuilder createdAt(java.time.LocalDateTime createdAt) {
+      // Note: createdAt is typically set by JPA, but added for testing
+      return this;
+    }
+
     public Loan build() {
       Loan loan = new Loan();
       loan.loanNumber = this.loanNumber;

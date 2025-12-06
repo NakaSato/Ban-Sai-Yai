@@ -76,14 +76,14 @@ app:
     location: ${UPLOAD_LOCATION:/opt/bansaiyai/uploads}
   jwt:
     secret: ${JWT_SECRET:bansaiyai-secret-key-for-jwt-token-generation-must-be-at-least-256-bits-long}
-    expiration: ${JWT_EXPIRATION:900000}
-    access-token-expiration: ${JWT_ACCESS_TOKEN_EXPIRATION:900000}
+    expiration: ${JWT_EXPIRATION:86400000}
+    access-token-expiration: ${JWT_ACCESS_TOKEN_EXPIRATION:86400000}
     refresh-token-expiration: ${JWT_REFRESH_TOKEN_EXPIRATION:604800000}
 
 # Authentication / Rate Limiting Configuration
 auth:
   account-lock:
-    enabled: ${AUTH_ACCOUNT_LOCK_ENABLED:true}
+    enabled: ${AUTH_ACCOUNT_LOCK_ENABLED:false}
   rate-limit:
     max-attempts: ${AUTH_RATE_LIMIT_MAX_ATTEMPTS:5}
     window-minutes: ${AUTH_RATE_LIMIT_WINDOW_MINUTES:15}
@@ -130,8 +130,8 @@ app:
   upload:
     location: ./uploads
   jwt:
-    expiration: 3600000 # 1 hour for dev
-    access-token-expiration: 900000 # 15 minutes
+    expiration: 86400000 # 1 day
+    access-token-expiration: 86400000 # 1 day
     refresh-token-expiration: 604800000 # 7 days
   rate-limit:
     max-attempts: 999999

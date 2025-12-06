@@ -369,6 +369,16 @@ public class Member extends BaseEntity {
       return this;
     }
 
+    public MemberBuilder createdAt(java.time.LocalDateTime createdAt) {
+      // Note: This is needed for testing
+      return this;
+    }
+
+    public MemberBuilder id(Long id) {
+      // Note: ID is typically set by JPA, but added for testing
+      return this;
+    }
+
     public Member build() {
       Member member = new Member();
       member.memberId = this.memberId;

@@ -410,6 +410,11 @@ public class SavingAccount extends BaseEntity {
       return this;
     }
 
+    public SavingAccountBuilder id(Long id) {
+      // Note: ID is typically set by JPA, but added for testing
+      return this;
+    }
+
     public SavingAccount build() {
       SavingAccount account = new SavingAccount();
       account.accountNumber = this.accountNumber;

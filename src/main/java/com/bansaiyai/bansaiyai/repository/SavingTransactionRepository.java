@@ -1,6 +1,7 @@
 package com.bansaiyai.bansaiyai.repository;
 
 import com.bansaiyai.bansaiyai.entity.SavingTransaction;
+import com.bansaiyai.bansaiyai.entity.enums.ApprovalStatus;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -13,4 +14,6 @@ public interface SavingTransactionRepository extends JpaRepository<SavingTransac
 
     @Query("SELECT st FROM SavingTransaction st ORDER BY st.transactionDate DESC, st.createdAt DESC")
     List<SavingTransaction> findRecentTransactions(Pageable pageable);
+
+    List<SavingTransaction> findByApprovalStatus(ApprovalStatus approvalStatus);
 }

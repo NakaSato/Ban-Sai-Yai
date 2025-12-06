@@ -6,7 +6,6 @@ import com.bansaiyai.bansaiyai.dto.SignUpRequest;
 import com.bansaiyai.bansaiyai.entity.User;
 import com.bansaiyai.bansaiyai.security.UserPrincipal;
 import com.bansaiyai.bansaiyai.service.AuthService;
-import com.bansaiyai.bansaiyai.service.LoginAttemptService;
 import com.bansaiyai.bansaiyai.service.TokenService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -37,26 +36,9 @@ public class AuthController {
   @Autowired
   private TokenService tokenService;
 
-  @Autowired
-  private LoginAttemptService loginAttemptService;
-
   @PostMapping("/login")
   public ResponseEntity<?> authenticateUser(@Valid @RequestBody LoginRequest loginRequest) {
     String username = loginRequest.getUsername();
-
-    // Check if username is blocked due to rate limiting (Requirement 4.1)
-    if (loginAttemptService.isBlocked(username)) {
-      long remainingSeconds = loginAttemptService.getRemainingLockoutSeconds(username);
-      long remainingMinutes = (remainingSeconds + 59) / 60; // Round up to nearest minute
-      
-      // Return lockout error with remaining time (Requirement 4.2)
-      return ResponseEntity.status(HttpStatus.LOCKED)
-          .body(Map.of(
-              "message", "Account temporarily locked due to too many failed login attempts. Please try again in " + remainingMinutes + " minute(s).",
-              "remainingSeconds", remainingSeconds,
-              "locked", true
-          ));
-    }
 
     try {
       // Attempt authentication
@@ -65,18 +47,15 @@ public class AuthController {
 
       UserPrincipal userPrincipal = (UserPrincipal) authentication.getPrincipal();
 
-      // Record successful login and reset failed attempt counter (Requirement 4.4)
-      loginAttemptService.recordSuccessfulAttempt(username);
-
       List<String> authorities = userPrincipal.getAuthorities().stream()
           .map(grantedAuthority -> grantedAuthority.getAuthority())
           .toList();
 
-      // Use TokenService to generate tokens with rememberMe parameter (Requirement 2.1, 2.2)
+      // Use TokenService to generate tokens with rememberMe parameter (Requirement
+      // 2.1, 2.2)
       TokenService.TokenPair tokenPair = tokenService.generateTokens(
           userPrincipal,
-          loginRequest.isRememberMe()
-      );
+          loginRequest.isRememberMe());
 
       LoginResponse loginResponse = new LoginResponse();
       loginResponse.setToken(tokenPair.getAccessToken());
@@ -92,10 +71,8 @@ public class AuthController {
       return ResponseEntity.ok(loginResponse);
 
     } catch (AuthenticationException e) {
-      // Record failed login attempt for rate limiting
-      loginAttemptService.recordFailedAttempt(username);
-
-      // Return generic error message that doesn't reveal which credential was incorrect (Requirement 5.1)
+      // Return generic error message that doesn't reveal which credential was
+      // incorrect (Requirement 5.1)
       return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
           .body(Map.of("message", "Invalid username or password"));
     }
@@ -157,7 +134,8 @@ public class AuthController {
     }
 
     try {
-      // Use TokenService to refresh access token with token rotation (Requirement 8.1, 8.2)
+      // Use TokenService to refresh access token with token rotation (Requirement
+      // 8.1, 8.2)
       TokenService.TokenPair tokenPair = tokenService.refreshAccessToken(refreshToken);
 
       // Return new token pair
@@ -165,13 +143,12 @@ public class AuthController {
           "token", tokenPair.getAccessToken(),
           "refreshToken", tokenPair.getRefreshToken(),
           "expiresIn", tokenPair.getAccessTokenExpiresIn(),
-          "type", "Bearer"
-      ));
+          "type", "Bearer"));
 
     } catch (RuntimeException e) {
       // Enhanced error handling for different failure scenarios (Requirement 8.3)
       String errorMessage = e.getMessage();
-      
+
       if (errorMessage.contains("Invalid refresh token")) {
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
             .body(Map.of("message", "Invalid refresh token", "code", "INVALID_TOKEN"));

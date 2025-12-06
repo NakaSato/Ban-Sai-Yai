@@ -2,6 +2,7 @@ package com.bansaiyai.bansaiyai.entity;
 
 import com.bansaiyai.bansaiyai.entity.enums.PaymentStatus;
 import com.bansaiyai.bansaiyai.entity.enums.PaymentType;
+import com.bansaiyai.bansaiyai.entity.enums.ApprovalStatus;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -138,6 +139,21 @@ public class Payment extends BaseEntity {
 
   @Column(name = "updated_by")
   private String updatedBy;
+
+  @ManyToOne(fetch = FetchType.LAZY)
+  @JoinColumn(name = "creator_user_id")
+  private User creatorUser;
+
+  @ManyToOne(fetch = FetchType.LAZY)
+  @JoinColumn(name = "approver_user_id")
+  private User approverUser;
+
+  @Enumerated(EnumType.STRING)
+  @Column(name = "approval_status", nullable = false)
+  private ApprovalStatus approvalStatus = ApprovalStatus.APPROVED;
+
+  @Column(name = "voided_at")
+  private LocalDateTime voidedAt;
 
   @Version
   @Column(name = "version")
@@ -552,6 +568,38 @@ public class Payment extends BaseEntity {
     this.updatedBy = updatedBy;
   }
 
+  public User getCreatorUser() {
+    return creatorUser;
+  }
+
+  public void setCreatorUser(User creatorUser) {
+    this.creatorUser = creatorUser;
+  }
+
+  public User getApproverUser() {
+    return approverUser;
+  }
+
+  public void setApproverUser(User approverUser) {
+    this.approverUser = approverUser;
+  }
+
+  public ApprovalStatus getApprovalStatus() {
+    return approvalStatus;
+  }
+
+  public void setApprovalStatus(ApprovalStatus approvalStatus) {
+    this.approvalStatus = approvalStatus;
+  }
+
+  public LocalDateTime getVoidedAt() {
+    return voidedAt;
+  }
+
+  public void setVoidedAt(LocalDateTime voidedAt) {
+    this.voidedAt = voidedAt;
+  }
+
   // Manual builder for Lombok compatibility
   public static PaymentBuilder builder() {
     return new PaymentBuilder();
@@ -766,6 +814,11 @@ public class Payment extends BaseEntity {
 
     public PaymentBuilder updatedBy(String updatedBy) {
       this.updatedBy = updatedBy;
+      return this;
+    }
+
+    public PaymentBuilder id(Long id) {
+      // Note: ID is typically set by JPA, but added for testing
       return this;
     }
 
