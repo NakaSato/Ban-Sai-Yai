@@ -4,9 +4,12 @@ import jakarta.persistence.*;
 import jakarta.validation.constraints.*;
 import lombok.*;
 import lombok.experimental.FieldNameConstants;
+import org.springframework.data.annotation.CreatedBy;
+import org.springframework.data.annotation.LastModifiedBy;
 import org.hibernate.annotations.CreationTimestamp;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDate;
 
 /**
@@ -81,6 +84,7 @@ public class SavingBalance extends BaseEntity {
   @DecimalMin(value = "0.00", message = "Interest rate cannot be negative")
   private BigDecimal interestRate;
 
+  @Builder.Default
   @Column(name = "is_month_end", nullable = false)
   private Boolean isMonthEnd = false;
 
@@ -123,7 +127,7 @@ public class SavingBalance extends BaseEntity {
     }
     // Simple calculation: (Opening + Closing) / 2
     return openingBalance.add(closingBalance)
-        .divide(new BigDecimal("2"), 2, BigDecimal.ROUND_HALF_UP);
+        .divide(new BigDecimal("2"), 2, RoundingMode.HALF_UP);
   }
 
   /**

@@ -3,8 +3,10 @@ package com.bansaiyai.bansaiyai.service;
 import com.bansaiyai.bansaiyai.dto.SignUpRequest;
 import com.bansaiyai.bansaiyai.entity.Member;
 import com.bansaiyai.bansaiyai.entity.User;
+import com.bansaiyai.bansaiyai.exception.BusinessException;
 import com.bansaiyai.bansaiyai.repository.UserRepository;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -14,24 +16,25 @@ import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Service
+@Slf4j
+@RequiredArgsConstructor
 public class AuthService {
 
-  @Autowired
-  private UserRepository userRepository;
-
-  @Autowired
-  private PasswordEncoder passwordEncoder;
+  private final UserRepository userRepository;
+  private final PasswordEncoder passwordEncoder;
 
   @Transactional
-  public User registerUser(SignUpRequest signUpRequest) throws Exception {
+  public User registerUser(SignUpRequest signUpRequest) {
+    log.info("Registering new user: {}", signUpRequest.getUsername());
+
     // Check if username already exists
     if (userRepository.existsByUsername(signUpRequest.getUsername())) {
-      throw new RuntimeException("Username is already taken");
+      throw new BusinessException("Username is already taken", "USERNAME_EXISTS");
     }
 
     // Check if email already exists
     if (userRepository.existsByEmail(signUpRequest.getEmail())) {
-      throw new RuntimeException("Email is already registered");
+      throw new BusinessException("Email is already registered", "EMAIL_EXISTS");
     }
 
     // Create new user
@@ -79,9 +82,11 @@ public class AuthService {
   }
 
   @Transactional
-  public void initiatePasswordReset(String email) throws Exception {
+  public void initiatePasswordReset(String email) {
+    log.info("Initiating password reset for email: {}", email);
+
     User user = userRepository.findByEmail(email)
-        .orElseThrow(() -> new RuntimeException("User not found with email: " + email));
+        .orElseThrow(() -> new BusinessException("User not found with email: " + email, "USER_NOT_FOUND"));
 
     // Generate reset token
     String resetToken = UUID.randomUUID().toString();
@@ -95,16 +100,18 @@ public class AuthService {
   }
 
   @Transactional
-  public void resetPassword(String token, String newPassword, String confirmPassword) throws Exception {
+  public void resetPassword(String token, String newPassword, String confirmPassword) {
+    log.info("Resetting password with token");
+
     if (!newPassword.equals(confirmPassword)) {
-      throw new RuntimeException("Passwords do not match");
+      throw new BusinessException("Passwords do not match", "PASSWORD_MISMATCH");
     }
 
     User user = userRepository.findByPasswordResetToken(token)
-        .orElseThrow(() -> new RuntimeException("Invalid or expired reset token"));
+        .orElseThrow(() -> new BusinessException("Invalid or expired reset token", "INVALID_TOKEN"));
 
     if (user.getPasswordResetExpires().isBefore(LocalDateTime.now())) {
-      throw new RuntimeException("Reset token has expired");
+      throw new BusinessException("Reset token has expired", "TOKEN_EXPIRED");
     }
 
     user.setPassword(passwordEncoder.encode(newPassword));

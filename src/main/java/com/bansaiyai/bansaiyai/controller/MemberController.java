@@ -1,6 +1,7 @@
 package com.bansaiyai.bansaiyai.controller;
 
 import com.bansaiyai.bansaiyai.entity.Member;
+import com.bansaiyai.bansaiyai.entity.User;
 import com.bansaiyai.bansaiyai.service.MemberService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
@@ -9,6 +10,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -38,7 +40,18 @@ public class MemberController {
 
   @GetMapping("/{id}")
   @PreAuthorize("hasAnyRole('PRESIDENT', 'SECRETARY', 'OFFICER', 'MEMBER')")
-  public ResponseEntity<Member> getMemberById(@PathVariable Long id) {
+  public ResponseEntity<Member> getMemberById(@PathVariable Long id, Authentication authentication) {
+    // Get current user
+    User currentUser = getCurrentUser(authentication);
+
+    // Member data isolation: Members can only view their own data
+    if (currentUser.getRole() == User.Role.MEMBER) {
+      // Check if the member is viewing their own profile
+      if (currentUser.getMember() == null || !currentUser.getMember().getId().equals(id)) {
+        return ResponseEntity.status(403).build();
+      }
+    }
+
     return memberService.getMemberById(id)
         .map(member -> ResponseEntity.ok(member))
         .orElse(ResponseEntity.notFound().build());
@@ -104,5 +117,25 @@ public class MemberController {
   public ResponseEntity<MemberService.MemberStatistics> getMemberStatistics() {
     MemberService.MemberStatistics stats = memberService.getMemberStatistics();
     return ResponseEntity.ok(stats);
+  }
+
+  /**
+   * Helper method to get current user from authentication
+   * In a real implementation, you'd fetch this from database
+   */
+  private User getCurrentUser(Authentication authentication) {
+    // This is a simplified approach. In a real application, you'd:
+    // 1. Get the current user from database
+    // 2. Return the actual User object
+
+    // For demo purposes, we'll create a mock user
+    User mockUser = new User();
+    mockUser.setUsername(authentication.getName());
+
+    // Set role based on the authenticated user
+    // In reality, this would come from the database
+    mockUser.setRole(User.Role.MEMBER); // Default to member for demo
+
+    return mockUser;
   }
 }

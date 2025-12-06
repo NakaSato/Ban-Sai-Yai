@@ -29,20 +29,12 @@ import java.util.Optional;
  */
 @Service
 @Slf4j
+@RequiredArgsConstructor
 @Transactional
 public class SavingService {
 
-  // Manual logger for Lombok compatibility
-  private static final Logger log = LoggerFactory.getLogger(SavingService.class);
-
   private final SavingRepository savingRepository;
   private final MemberRepository memberRepository;
-
-  // Manual constructor
-  public SavingService(SavingRepository savingRepository, MemberRepository memberRepository) {
-    this.savingRepository = savingRepository;
-    this.memberRepository = memberRepository;
-  }
 
   /**
    * Create a new savings account
@@ -276,7 +268,7 @@ public class SavingService {
     // Simple daily compounding interest
     BigDecimal dailyInterest = account.calculateDailyInterest();
     return dailyInterest.multiply(new BigDecimal(daysInPeriod))
-        .setScale(2, BigDecimal.ROUND_HALF_UP);
+        .setScale(2, java.math.RoundingMode.HALF_UP);
   }
 
   /**

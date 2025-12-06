@@ -158,9 +158,9 @@ public class LoanBalance extends BaseEntity {
       return BigDecimal.ZERO;
     }
 
-    return totalPaid.divide(averagePayment, 4, BigDecimal.ROUND_HALF_UP)
+    return totalPaid.divide(averagePayment, 4, java.math.RoundingMode.HALF_UP)
         .multiply(new BigDecimal("100"))
-        .setScale(2, BigDecimal.ROUND_HALF_UP);
+        .setScale(2, java.math.RoundingMode.HALF_UP);
   }
 
   /**
@@ -265,7 +265,7 @@ public class LoanBalance extends BaseEntity {
 
     // Calculate average payment
     if (paymentCount != null && paymentCount > 0) {
-      this.averagePayment = totalPaid.divide(new BigDecimal(paymentCount), 2, BigDecimal.ROUND_HALF_UP);
+      this.averagePayment = totalPaid.divide(new BigDecimal(paymentCount), 2, java.math.RoundingMode.HALF_UP);
     }
 
     // Set forward date for next month

@@ -30,17 +30,10 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/payments")
 @Slf4j
+@RequiredArgsConstructor
 public class PaymentController {
 
   private final PaymentService paymentService;
-
-  // Manual logger for Lombok compatibility
-  private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(PaymentController.class);
-
-  // Manual constructor injection for Lombok compatibility
-  public PaymentController(PaymentService paymentService) {
-    this.paymentService = paymentService;
-  }
 
   /**
    * Create a new payment

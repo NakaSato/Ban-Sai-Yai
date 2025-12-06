@@ -7,7 +7,6 @@ import com.bansaiyai.bansaiyai.entity.Member;
 import com.bansaiyai.bansaiyai.entity.Payment;
 import com.bansaiyai.bansaiyai.entity.SavingAccount;
 import com.bansaiyai.bansaiyai.entity.enums.PaymentStatus;
-import com.bansaiyai.bansaiyai.entity.enums.PaymentType;
 import com.bansaiyai.bansaiyai.repository.LoanRepository;
 import com.bansaiyai.bansaiyai.repository.MemberRepository;
 import com.bansaiyai.bansaiyai.repository.PaymentRepository;
@@ -21,7 +20,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -32,6 +30,7 @@ import java.util.stream.Collectors;
  */
 @Service
 @Slf4j
+@RequiredArgsConstructor
 @Transactional
 public class PaymentService {
 
@@ -41,21 +40,6 @@ public class PaymentService {
   private final SavingRepository savingRepository;
   private final LoanService loanService;
   private final SavingService savingService;
-
-  // Manual logger for Lombok compatibility
-  private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(PaymentService.class);
-
-  // Manual constructor injection for Lombok compatibility
-  public PaymentService(PaymentRepository paymentRepository, MemberRepository memberRepository,
-      LoanRepository loanRepository, SavingRepository savingRepository,
-      LoanService loanService, SavingService savingService) {
-    this.paymentRepository = paymentRepository;
-    this.memberRepository = memberRepository;
-    this.loanRepository = loanRepository;
-    this.savingRepository = savingRepository;
-    this.loanService = loanService;
-    this.savingService = savingService;
-  }
 
   /**
    * Create a new payment

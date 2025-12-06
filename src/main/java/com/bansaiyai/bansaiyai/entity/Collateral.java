@@ -154,7 +154,7 @@ public class Collateral extends BaseEntity {
       return BigDecimal.ZERO;
     }
 
-    return value.multiply(ratio).setScale(2, BigDecimal.ROUND_HALF_UP);
+    return value.multiply(ratio).setScale(2, java.math.RoundingMode.HALF_UP);
   }
 
   /**
@@ -184,9 +184,9 @@ public class Collateral extends BaseEntity {
       return BigDecimal.ZERO;
     }
 
-    return loanAmount.divide(estimatedValue, 4, BigDecimal.ROUND_HALF_UP)
+    return loanAmount.divide(estimatedValue, 4, java.math.RoundingMode.HALF_UP)
         .multiply(new BigDecimal("100"))
-        .setScale(2, BigDecimal.ROUND_HALF_UP);
+        .setScale(2, java.math.RoundingMode.HALF_UP);
   }
 
   @PrePersist

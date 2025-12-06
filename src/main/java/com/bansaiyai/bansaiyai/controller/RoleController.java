@@ -2,8 +2,6 @@ package com.bansaiyai.bansaiyai.controller;
 
 import com.bansaiyai.bansaiyai.dto.PermissionRequest;
 import com.bansaiyai.bansaiyai.dto.RoleDto;
-import com.bansaiyai.bansaiyai.entity.Permission;
-import com.bansaiyai.bansaiyai.entity.Role;
 import com.bansaiyai.bansaiyai.entity.User;
 import com.bansaiyai.bansaiyai.service.RolePermissionService;
 import com.bansaiyai.bansaiyai.service.RoleService;
@@ -46,18 +44,16 @@ public class RoleController {
           Set<String> permissions = entry.getValue();
 
           return RoleDto.builder()
-              .roleId(0) // Will be set when we get from proper repository
+              .id(0L) // Will be set when we get from proper repository
               .roleName(roleName)
               .description(getRoleDescriptionFromName(roleName))
               .permissions(permissions.stream()
                   .map(perm -> RoleDto.PermissionDto.builder()
-                      .permId(0) // Will be set when we get from proper repository
-                      .permSlug(perm)
-                      .module(extractModuleFromPermission(perm))
+                      .id(0L) // Will be set when we get from proper repository
+                      .permissionSlug(perm)
                       .description("")
                       .build())
                   .collect(Collectors.toList()))
-              .createdAt(null) // Will be set when we get from proper repository
               .build();
         })
         .collect(Collectors.toList());
@@ -162,7 +158,6 @@ public class RoleController {
 
     // Get current user's role
     Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-    String currentUsername = authentication.getName();
 
     // For now, we'll use a simplified approach - in a real implementation,
     // you'd fetch the current user's role from the database
@@ -333,16 +328,6 @@ public class RoleController {
       default:
         return "Unknown role";
     }
-  }
-
-  /**
-   * Helper method to extract module from permission slug
-   */
-  private String extractModuleFromPermission(String permissionSlug) {
-    if (permissionSlug.contains(".")) {
-      return permissionSlug.split("\\.")[0];
-    }
-    return permissionSlug;
   }
 
   /**

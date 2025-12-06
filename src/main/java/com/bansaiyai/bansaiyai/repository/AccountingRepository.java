@@ -11,7 +11,8 @@ import java.util.List;
 
 /**
  * Repository interface for AccountingEntry entity.
- * Provides methods for querying accounting entries and calculating trial balance.
+ * Provides methods for querying accounting entries and calculating trial
+ * balance.
  */
 @Repository
 public interface AccountingRepository extends JpaRepository<AccountingEntry, Long> {
@@ -38,7 +39,14 @@ public interface AccountingRepository extends JpaRepository<AccountingEntry, Lon
      */
     @Query("SELECT a FROM AccountingEntry a WHERE a.fiscalPeriod = :fiscalPeriod AND a.accountCode LIKE :codePattern")
     List<AccountingEntry> findByFiscalPeriodAndAccountCodePattern(
-        @Param("fiscalPeriod") String fiscalPeriod, 
-        @Param("codePattern") String codePattern
-    );
+            @Param("fiscalPeriod") String fiscalPeriod,
+            @Param("codePattern") String codePattern);
+
+    /**
+     * Find all accounting entries for a specific account code before a given date
+     */
+    @Query("SELECT a FROM AccountingEntry a WHERE a.accountCode = :accountCode AND a.transactionDate < :date")
+    List<AccountingEntry> findByAccountCodeAndTransactionDateBefore(
+            @Param("accountCode") String accountCode,
+            @Param("date") java.time.LocalDate date);
 }

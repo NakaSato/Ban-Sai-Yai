@@ -2,8 +2,8 @@ package com.bansaiyai.bansaiyai.service;
 
 import com.bansaiyai.bansaiyai.entity.LoginAttempt;
 import com.bansaiyai.bansaiyai.repository.LoginAttemptRepository;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
@@ -24,10 +24,10 @@ import java.util.Optional;
  */
 @Service
 @Slf4j
+@RequiredArgsConstructor
 public class LoginAttemptService {
 
-  @Autowired
-  private LoginAttemptRepository loginAttemptRepository;
+  private final LoginAttemptRepository loginAttemptRepository;
 
   /**
    * Enable/disable account locking feature.

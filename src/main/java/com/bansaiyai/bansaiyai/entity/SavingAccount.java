@@ -5,12 +5,10 @@ import jakarta.persistence.*;
 import jakarta.validation.constraints.*;
 import lombok.*;
 import lombok.experimental.FieldNameConstants;
-import org.hibernate.annotations.CreationTimestamp;
-import org.springframework.data.annotation.CreatedBy;
-import org.springframework.data.annotation.LastModifiedBy;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -141,7 +139,7 @@ public class SavingAccount extends BaseEntity {
 
     // Daily interest = (Balance * Annual Rate) / 365 / 100
     return balance.multiply(interestRate)
-        .divide(new BigDecimal("36500"), 8, BigDecimal.ROUND_HALF_UP);
+        .divide(new BigDecimal("36500"), 8, RoundingMode.HALF_UP);
   }
 
   /**

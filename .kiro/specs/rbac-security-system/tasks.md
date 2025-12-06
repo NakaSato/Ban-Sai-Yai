@@ -279,7 +279,7 @@
   - Test password complexity validation
   - _Requirements: 13.1, 13.2, 13.3_
 
-- [ ] 19. Backend: Create Audit Dashboard REST endpoints
+- [x] 19. Backend: Create Audit Dashboard REST endpoints
   - Create GET /api/audit/critical-actions endpoint
   - Create GET /api/audit/role-violations endpoint
   - Create GET /api/audit/activity-heatmap endpoint
@@ -287,11 +287,11 @@
   - Add @PreAuthorize('ROLE_PRESIDENT') to all endpoints
   - _Requirements: 10.1, 10.2, 10.3, 10.4, 10.5_
 
-- [ ] 19.1 Write property test for off-hours activity security alert
+- [x] 19.1 Write property test for off-hours activity security alert
   - **Property 28: Off-hours activity security alert**
   - **Validates: Requirements 10.3**
 
-- [ ] 20. Backend: Create Cash Reconciliation REST endpoints
+- [x] 20. Backend: Create Cash Reconciliation REST endpoints
   - Create POST /api/cash-reconciliation endpoint for Officer
   - Create GET /api/cash-reconciliation/pending endpoint for Secretary
   - Create POST /api/cash-reconciliation/{id}/approve endpoint for Secretary
@@ -299,32 +299,32 @@
   - Create GET /api/cash-reconciliation/can-close-day endpoint
   - _Requirements: 8.1, 8.2, 8.3, 8.4, 8.5, 9.1, 9.2, 9.4, 9.5_
 
-- [ ] 20.1 Write property test for variance escalation to Secretary
+- [x] 20.1 Write property test for variance escalation to Secretary
   - **Property 24: Variance escalation to Secretary**
   - **Validates: Requirements 8.5, 9.1**
 
-- [ ] 20.2 Write integration tests for cash reconciliation flow
+- [x] 20.2 Write integration tests for cash reconciliation flow
   - Test Officer creates reconciliation with variance
   - Test Officer cannot close day with variance
   - Test Secretary approves discrepancy
   - Test day can close after approval
   - _Requirements: 8.2, 8.3, 8.4, 9.3, 9.4_
 
-- [ ] 21. Backend: Create Guarantor access endpoints
+- [x] 21. Backend: Create Guarantor access endpoints
   - Create GET /api/members/{id}/guaranteed-loans endpoint
   - Create GET /api/loans/{id} endpoint with guarantor access check
   - Integrate GuarantorAccessEvaluator into loan access control
   - _Requirements: 7.1, 7.2, 7.5_
 
-- [ ] 21.1 Write property test for guaranteed loans widget accuracy
+- [x] 21.1 Write property test for guaranteed loans widget accuracy
   - **Property 17: Guaranteed loans widget accuracy**
   - **Validates: Requirements 7.2**
 
-- [ ] 21.2 Write property test for guarantor access revocation on loan completion
+- [x] 21.2 Write property test for guarantor access revocation on loan completion
   - **Property 19: Guarantor access revocation on loan completion**
   - **Validates: Requirements 7.4**
 
-- [ ] 22. Backend: Add role-based access control to existing endpoints
+- [x] 22. Backend: Add role-based access control to existing endpoints
   - Add @PreAuthorize annotations to transaction endpoints
   - Add @PreAuthorize annotations to loan endpoints
   - Add @PreAuthorize annotations to accounting endpoints

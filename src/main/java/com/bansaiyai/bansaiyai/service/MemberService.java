@@ -2,33 +2,47 @@ package com.bansaiyai.bansaiyai.service;
 
 import com.bansaiyai.bansaiyai.entity.Member;
 import com.bansaiyai.bansaiyai.repository.MemberRepository;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Optional;
 
+/**
+ * Service for managing member operations.
+ * Handles member CRUD operations and business logic.
+ */
 @Service
+@RequiredArgsConstructor
+@Slf4j
+@Transactional(readOnly = true)
 public class MemberService {
 
-  @Autowired
-  private MemberRepository memberRepository;
+  private final MemberRepository memberRepository;
 
   public Page<Member> getAllMembers(Pageable pageable) {
+    log.debug("Fetching all members with pagination: {}", pageable);
     return memberRepository.findAll(pageable);
   }
 
   public Optional<Member> getMemberById(Long id) {
+    log.debug("Fetching member by id: {}", id);
     return memberRepository.findById(id);
   }
 
+  @Transactional
   public Member saveMember(Member member) {
+    log.info("Saving member: {}", member.getMemberId());
     return memberRepository.save(member);
   }
 
+  @Transactional
   public void deleteMember(Long id) {
+    log.info("Deleting member with id: {}", id);
     memberRepository.deleteById(id);
   }
 

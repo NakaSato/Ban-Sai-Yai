@@ -52,12 +52,14 @@ public class JwtUtils {
     return getClaimFromToken(token, Claims::getSubject);
   }
 
+  @SuppressWarnings("unchecked")
   public List<String> getRolesFromToken(String token) {
-    return getClaimFromToken(token, claims -> claims.get("roles", List.class));
+    return getClaimFromToken(token, claims -> (List<String>) claims.get("roles", List.class));
   }
 
+  @SuppressWarnings("unchecked")
   public List<String> getPermissionsFromToken(String token) {
-    return getClaimFromToken(token, claims -> claims.get("permissions", List.class));
+    return getClaimFromToken(token, claims -> (List<String>) claims.get("permissions", List.class));
   }
 
   public Date getExpirationDateFromToken(String token) {

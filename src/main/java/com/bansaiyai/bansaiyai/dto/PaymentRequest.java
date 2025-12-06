@@ -69,6 +69,7 @@ public class PaymentRequest {
   @Size(max = 1000, message = "Notes cannot exceed 1000 characters")
   private String notes;
 
+  @Builder.Default
   private Boolean isRecurring = false;
 
   @Size(max = 20, message = "Recurring frequency cannot exceed 20 characters")
@@ -76,8 +77,10 @@ public class PaymentRequest {
 
   private LocalDate recurringEndDate;
 
+  @Builder.Default
   private Boolean autoDebit = false;
 
+  @Builder.Default
   private Boolean isVerified = false;
 
   // Validation methods for loan payments

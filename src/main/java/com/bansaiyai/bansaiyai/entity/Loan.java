@@ -6,12 +6,12 @@ import jakarta.persistence.*;
 import jakarta.validation.constraints.*;
 import lombok.*;
 import lombok.experimental.FieldNameConstants;
-import org.hibernate.annotations.CreationTimestamp;
 import org.springframework.data.annotation.CreatedBy;
 import org.springframework.data.annotation.LastModifiedBy;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -154,13 +154,13 @@ public class Loan extends BaseEntity {
     }
 
     // Convert annual rate to monthly rate
-    BigDecimal monthlyRate = interestRate.divide(BigDecimal.valueOf(1200), 8, BigDecimal.ROUND_HALF_UP);
+    BigDecimal monthlyRate = interestRate.divide(BigDecimal.valueOf(1200), 8, RoundingMode.HALF_UP);
 
     // Calculate installment using formula: P * r / (1 - (1 + r)^-n)
     BigDecimal denominator = BigDecimal.ONE.subtract(
         BigDecimal.ONE.add(monthlyRate).pow(-termMonths));
 
-    return principalAmount.multiply(monthlyRate).divide(denominator, 2, BigDecimal.ROUND_HALF_UP);
+    return principalAmount.multiply(monthlyRate).divide(denominator, 2, RoundingMode.HALF_UP);
   }
 
   /**
@@ -211,10 +211,10 @@ public class Loan extends BaseEntity {
 
     // Penalty rate: 1% per month on outstanding balance
     BigDecimal monthlyPenaltyRate = new BigDecimal("0.01");
-    BigDecimal dailyRate = monthlyPenaltyRate.divide(BigDecimal.valueOf(30), 8, BigDecimal.ROUND_HALF_UP);
+    BigDecimal dailyRate = monthlyPenaltyRate.divide(BigDecimal.valueOf(30), 8, RoundingMode.HALF_UP);
 
     return outstandingBalance.multiply(dailyRate).multiply(BigDecimal.valueOf(daysOverdue))
-        .setScale(2, BigDecimal.ROUND_HALF_UP);
+        .setScale(2, RoundingMode.HALF_UP);
   }
 
   /**

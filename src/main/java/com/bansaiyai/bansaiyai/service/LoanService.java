@@ -7,59 +7,63 @@ import com.bansaiyai.bansaiyai.entity.Loan;
 import com.bansaiyai.bansaiyai.entity.enums.LoanStatus;
 import com.bansaiyai.bansaiyai.entity.enums.LoanType;
 import com.bansaiyai.bansaiyai.entity.Member;
+import com.bansaiyai.bansaiyai.exception.BusinessException;
+import com.bansaiyai.bansaiyai.exception.ResourceNotFoundException;
 import com.bansaiyai.bansaiyai.repository.LoanRepository;
 import com.bansaiyai.bansaiyai.repository.MemberRepository;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDate;
-import java.time.YearMonth;
 import java.util.List;
 import java.util.Random;
-import java.util.stream.Collectors;
 
 @Service
 @Transactional
+@Slf4j
+@RequiredArgsConstructor
 public class LoanService {
 
-  @Autowired
-  private LoanRepository loanRepository;
-
-  @Autowired
-  private MemberRepository memberRepository;
+  private final LoanRepository loanRepository;
+  private final MemberRepository memberRepository;
 
   private static final BigDecimal MAX_LOAN_TO_SAVINGS_RATIO = new BigDecimal("3.0");
   private static final int MIN_TERM_MONTHS = 1;
   private static final int MAX_TERM_MONTHS = 120;
 
   public LoanResponse createLoanApplication(LoanApplicationRequest request, String createdBy) {
+    log.info("Creating loan application for member ID: {}", request.getMemberId());
+
     Member member = memberRepository.findById(request.getMemberId())
-        .orElseThrow(() -> new RuntimeException("Member not found"));
+        .orElseThrow(() -> new ResourceNotFoundException("Member", "id", request.getMemberId()));
 
     // Validate member is active
     if (!member.getIsActive()) {
-      throw new RuntimeException("Member is not active");
+      throw new BusinessException("Member is not active", "MEMBER_INACTIVE");
     }
 
     // Check for existing active loans
     List<Loan> activeLoans = loanRepository.findByMemberIdAndStatus(request.getMemberId(), LoanStatus.ACTIVE);
     if (!activeLoans.isEmpty()) {
-      throw new RuntimeException("Member already has an active loan");
+      throw new BusinessException("Member already has an active loan", "ACTIVE_LOAN_EXISTS");
     }
 
     // Validate loan amount
     if (request.getPrincipalAmount().compareTo(BigDecimal.ZERO) <= 0) {
-      throw new RuntimeException("Loan amount must be positive");
+      throw new BusinessException("Loan amount must be positive", "INVALID_AMOUNT");
     }
 
     // Validate term
     if (request.getTermMonths() < MIN_TERM_MONTHS || request.getTermMonths() > MAX_TERM_MONTHS) {
-      throw new RuntimeException(
-          "Loan term must be between " + MIN_TERM_MONTHS + " and " + MAX_TERM_MONTHS + " months");
+      throw new BusinessException(
+          "Loan term must be between " + MIN_TERM_MONTHS + " and " + MAX_TERM_MONTHS + " months",
+          "INVALID_TERM");
     }
 
     // Generate loan number
@@ -81,16 +85,19 @@ public class LoanService {
         .build();
 
     Loan savedLoan = loanRepository.save(loan);
+    log.info("Loan application created with number: {}", loanNumber);
     return convertToResponse(savedLoan);
   }
 
   @com.bansaiyai.bansaiyai.security.Audited(action = "LOAN_APPROVAL", entityType = "Loan")
   public LoanResponse approveLoan(Long loanId, LoanApprovalRequest approvalRequest, String approvedBy) {
+    log.info("Approving loan ID: {} by {}", loanId, approvedBy);
+
     Loan loan = loanRepository.findById(loanId)
-        .orElseThrow(() -> new RuntimeException("Loan not found"));
+        .orElseThrow(() -> new ResourceNotFoundException("Loan", "id", loanId));
 
     if (loan.getStatus() != LoanStatus.PENDING) {
-      throw new RuntimeException("Only pending loans can be approved");
+      throw new BusinessException("Only pending loans can be approved", "INVALID_LOAN_STATUS");
     }
 
     // Update loan with approval details
@@ -109,11 +116,13 @@ public class LoanService {
   }
 
   public LoanResponse disburseLoan(Long loanId, String disbursedBy) {
+    log.info("Disbursing loan ID: {} by {}", loanId, disbursedBy);
+
     Loan loan = loanRepository.findById(loanId)
-        .orElseThrow(() -> new RuntimeException("Loan not found"));
+        .orElseThrow(() -> new ResourceNotFoundException("Loan", "id", loanId));
 
     if (loan.getStatus() != LoanStatus.APPROVED) {
-      throw new RuntimeException("Only approved loans can be disbursed");
+      throw new BusinessException("Only approved loans can be disbursed", "INVALID_LOAN_STATUS");
     }
 
     // Update loan with disbursement details
@@ -132,11 +141,13 @@ public class LoanService {
   }
 
   public LoanResponse rejectLoan(Long loanId, String rejectionReason, String rejectedBy) {
+    log.info("Rejecting loan ID: {} by {}", loanId, rejectedBy);
+
     Loan loan = loanRepository.findById(loanId)
-        .orElseThrow(() -> new RuntimeException("Loan not found"));
+        .orElseThrow(() -> new ResourceNotFoundException("Loan", "id", loanId));
 
     if (loan.getStatus() != LoanStatus.PENDING) {
-      throw new RuntimeException("Only pending loans can be rejected");
+      throw new BusinessException("Only pending loans can be rejected", "INVALID_LOAN_STATUS");
     }
 
     loan.setStatus(LoanStatus.REJECTED);
@@ -179,25 +190,29 @@ public class LoanService {
 
   @Transactional(readOnly = true)
   public LoanResponse getLoanById(Long id) {
+    log.debug("Getting loan by ID: {}", id);
     Loan loan = loanRepository.findById(id)
-        .orElseThrow(() -> new RuntimeException("Loan not found"));
+        .orElseThrow(() -> new ResourceNotFoundException("Loan", "id", id));
     return convertToResponse(loan);
   }
 
   @Transactional(readOnly = true)
   public LoanResponse getLoanByNumber(String loanNumber) {
+    log.debug("Getting loan by number: {}", loanNumber);
     Loan loan = loanRepository.findByLoanNumber(loanNumber)
-        .orElseThrow(() -> new RuntimeException("Loan not found"));
+        .orElseThrow(() -> new ResourceNotFoundException("Loan", "loanNumber", loanNumber));
     return convertToResponse(loan);
   }
 
   public LoanResponse updateLoan(Long id, LoanApplicationRequest request, String updatedBy) {
+    log.info("Updating loan ID: {} by {}", id, updatedBy);
+
     Loan loan = loanRepository.findById(id)
-        .orElseThrow(() -> new RuntimeException("Loan not found"));
+        .orElseThrow(() -> new ResourceNotFoundException("Loan", "id", id));
 
     // Only allow updates for pending loans
     if (loan.getStatus() != LoanStatus.PENDING) {
-      throw new RuntimeException("Only pending loans can be updated");
+      throw new BusinessException("Only pending loans can be updated", "INVALID_LOAN_STATUS");
     }
 
     // Update fields
@@ -215,15 +230,18 @@ public class LoanService {
   }
 
   public void deleteLoan(Long id) {
+    log.info("Deleting loan ID: {}", id);
+
     Loan loan = loanRepository.findById(id)
-        .orElseThrow(() -> new RuntimeException("Loan not found"));
+        .orElseThrow(() -> new ResourceNotFoundException("Loan", "id", id));
 
     // Only allow deletion of pending loans
     if (loan.getStatus() != LoanStatus.PENDING) {
-      throw new RuntimeException("Only pending loans can be deleted");
+      throw new BusinessException("Only pending loans can be deleted", "INVALID_LOAN_STATUS");
     }
 
     loanRepository.delete(loan);
+    log.info("Loan ID: {} deleted successfully", id);
   }
 
   // Business logic methods
@@ -231,11 +249,11 @@ public class LoanService {
   @Transactional(readOnly = true)
   public BigDecimal calculateMonthlyPayment(Loan loan) {
     BigDecimal principal = loan.getApprovedAmount() != null ? loan.getApprovedAmount() : loan.getPrincipalAmount();
-    BigDecimal monthlyRate = loan.getInterestRate().divide(new BigDecimal("1200"), 6, BigDecimal.ROUND_HALF_UP);
+    BigDecimal monthlyRate = loan.getInterestRate().divide(new BigDecimal("1200"), 6, RoundingMode.HALF_UP);
     int months = loan.getTermMonths();
 
     if (monthlyRate.compareTo(BigDecimal.ZERO) == 0) {
-      return principal.divide(new BigDecimal(months), 2, BigDecimal.ROUND_HALF_UP);
+      return principal.divide(new BigDecimal(months), 2, RoundingMode.HALF_UP);
     }
 
     BigDecimal factor = monthlyRate.add(BigDecimal.ONE)
@@ -243,9 +261,9 @@ public class LoanService {
         .multiply(monthlyRate)
         .divide(
             monthlyRate.add(BigDecimal.ONE).pow(months).subtract(BigDecimal.ONE),
-            6, BigDecimal.ROUND_HALF_UP);
+            6, RoundingMode.HALF_UP);
 
-    return principal.multiply(factor).setScale(2, BigDecimal.ROUND_HALF_UP);
+    return principal.multiply(factor).setScale(2, RoundingMode.HALF_UP);
   }
 
   @Transactional(readOnly = true)
