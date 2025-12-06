@@ -281,6 +281,35 @@ export enum PaymentStatus {
 }
 
 // API Response Types
+/**
+ * Standardized API response wrapper matching backend ApiResponseWrapper
+ */
+export interface ApiResponseWrapper<T> {
+  success: boolean;
+  message: string;
+  data: T;
+  timestamp: string;
+  requestId?: string;
+  error?: ErrorDetails;
+  pagination?: PageInfo;
+}
+
+export interface ErrorDetails {
+  code: string;
+  field?: string;
+  details?: string;
+}
+
+export interface PageInfo {
+  page: number;
+  size: number;
+  totalElements: number;
+  totalPages: number;
+  first: boolean;
+  last: boolean;
+}
+
+/** @deprecated Use ApiResponseWrapper instead */
 export interface ApiResponse<T> {
   success: boolean;
   data: T;
@@ -436,3 +465,208 @@ export interface FilterParams {
   startDate?: string;
   endDate?: string;
 }
+
+// Additional Business Types for Thai Savings Group
+
+/**
+ * Share capital information for a member
+ */
+export interface ShareCapital {
+  memberId: string;
+  totalShares: number;
+  shareValue: number;
+  totalValue: number;
+  lastContributionDate?: string;
+}
+
+/**
+ * Dividend calculation result
+ */
+export interface DividendCalculation {
+  memberId: string;
+  memberName: string;
+  shareCapital: number;
+  interestIncome: number;
+  dividendRate: number;
+  dividendAmount: number;
+  fiscalYear: number;
+}
+
+/**
+ * Fiscal period for accounting
+ */
+export interface FiscalPeriodInfo {
+  id: string;
+  year: number;
+  startDate: string;
+  endDate: string;
+  status: "OPEN" | "CLOSED" | "PENDING_CLOSE";
+  closedBy?: string;
+  closedAt?: string;
+}
+
+/**
+ * Report parameters
+ */
+export interface ReportParams {
+  reportType: string;
+  startDate: string;
+  endDate: string;
+  format?: "PDF" | "EXCEL" | "CSV";
+  memberId?: string;
+  accountId?: string;
+  loanId?: string;
+}
+
+/**
+ * Report result
+ */
+export interface ReportResult {
+  reportId: string;
+  reportType: string;
+  generatedAt: string;
+  downloadUrl: string;
+  expiresAt: string;
+}
+
+/**
+ * Loan eligibility check result
+ */
+export interface LoanEligibility {
+  eligible: boolean;
+  maxLoanAmount: number;
+  shareCapital: number;
+  membershipMonths: number;
+  activeLoansCount: number;
+  reasons?: string[];
+}
+
+/**
+ * Approval workflow step
+ */
+export interface ApprovalStep {
+  id: string;
+  loanId: string;
+  step: number;
+  role: UserRole;
+  status: "PENDING" | "APPROVED" | "REJECTED";
+  approvedBy?: string;
+  approvedAt?: string;
+  comments?: string;
+}
+
+/**
+ * Notification preferences
+ */
+export interface NotificationPreferences {
+  emailNotifications: boolean;
+  smsNotifications: boolean;
+  loanReminders: boolean;
+  paymentReminders: boolean;
+  dividendNotifications: boolean;
+}
+
+/**
+ * Audit log entry (for admin view)
+ */
+export interface AuditLogEntry {
+  id: string;
+  userId: string;
+  username: string;
+  action: string;
+  entityType: string;
+  entityId?: string;
+  description: string;
+  ipAddress?: string;
+  timestamp: string;
+}
+
+/**
+ * System settings (admin only)
+ */
+export interface SystemSettings {
+  maxLoanMultiplier: number;
+  minMembershipMonthsForLoan: number;
+  maxActiveLoansPerMember: number;
+  defaultInterestRate: number;
+  lateFeePercentage: number;
+  dividendRate: number;
+  fiscalYearStart: string;
+  fiscalYearEnd: string;
+}
+
+/**
+ * Dashboard widget configuration
+ */
+export interface WidgetConfig {
+  id: string;
+  type: string;
+  title: string;
+  visible: boolean;
+  order: number;
+  size: "small" | "medium" | "large";
+}
+
+/**
+ * Recent activity item
+ */
+export interface ActivityItem {
+  id: string;
+  type: "LOAN" | "PAYMENT" | "DEPOSIT" | "WITHDRAWAL" | "MEMBER" | "SYSTEM";
+  action: string;
+  description: string;
+  userId?: string;
+  userName?: string;
+  timestamp: string;
+  metadata?: Record<string, any>;
+}
+
+/**
+ * Search result item
+ */
+export interface SearchResult {
+  type: "MEMBER" | "LOAN" | "ACCOUNT" | "PAYMENT";
+  id: string;
+  title: string;
+  subtitle: string;
+  url: string;
+}
+
+/**
+ * Bulk operation result
+ */
+export interface BulkOperationResult {
+  total: number;
+  successful: number;
+  failed: number;
+  errors?: Array<{
+    id: string;
+    error: string;
+  }>;
+}
+
+/**
+ * File upload result
+ */
+export interface FileUploadResult {
+  fileId: string;
+  fileName: string;
+  fileSize: number;
+  mimeType: string;
+  url: string;
+  uploadedAt: string;
+}
+
+/**
+ * Export types for TypeScript type inference
+ */
+export type UserRoleType = keyof typeof UserRole;
+export type MemberStatusType = keyof typeof MemberStatus;
+export type LoanTypeType = keyof typeof LoanType;
+export type LoanStatusType = keyof typeof LoanStatus;
+export type AccountTypeType = keyof typeof AccountType;
+export type AccountStatusType = keyof typeof AccountStatus;
+export type TransactionTypeType = keyof typeof TransactionType;
+export type PaymentTypeType = keyof typeof PaymentType;
+export type PaymentStatusType = keyof typeof PaymentStatus;
+export type CollateralTypeType = keyof typeof CollateralType;
