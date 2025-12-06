@@ -1,5 +1,6 @@
 package com.bansaiyai.bansaiyai.config;
 
+import com.bansaiyai.bansaiyai.repository.AuditLogRepository;
 import com.bansaiyai.bansaiyai.repository.LoginAttemptRepository;
 import com.bansaiyai.bansaiyai.repository.RefreshTokenRepository;
 import lombok.RequiredArgsConstructor;
@@ -24,9 +25,13 @@ public class ScheduledTasksConfig {
 
   private final RefreshTokenRepository refreshTokenRepository;
   private final LoginAttemptRepository loginAttemptRepository;
+  private final AuditLogRepository auditLogRepository;
 
   @Value("${scheduler.cleanup.enabled:true}")
   private boolean cleanupEnabled;
+
+  @Value("${scheduler.audit-retention.months:12}")
+  private int auditRetentionMonths;
 
   /**
    * Clean up expired refresh tokens.
@@ -100,5 +105,34 @@ public class ScheduledTasksConfig {
       return;
 
     log.debug("Scheduled tasks health check - OK");
+  }
+
+  /**
+   * Clean up old audit logs based on retention policy.
+   * Runs weekly on Sunday at 4:00 AM.
+   * Default retention period is 12 months.
+   */
+  @Scheduled(cron = "${scheduler.audit-cleanup.cron:0 0 4 ? * SUN}")
+  @Transactional
+  public void cleanupOldAuditLogs() {
+    if (!cleanupEnabled)
+      return;
+
+    log.info("Starting audit log retention cleanup (retention: {} months)", auditRetentionMonths);
+    try {
+      LocalDateTime cutoff = LocalDateTime.now().minusMonths(auditRetentionMonths);
+
+      // First, count how many will be deleted
+      long count = auditLogRepository.countByTimestampBefore(cutoff);
+      log.info("Found {} audit logs older than {} to delete", count, cutoff);
+
+      if (count > 0) {
+        // Delete in batches to avoid memory issues
+        int deleted = auditLogRepository.deleteOldLogs(cutoff);
+        log.info("Deleted {} old audit logs", deleted);
+      }
+    } catch (Exception e) {
+      log.error("Error during audit log cleanup", e);
+    }
   }
 }

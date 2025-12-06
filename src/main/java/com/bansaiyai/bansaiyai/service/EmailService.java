@@ -18,6 +18,7 @@ import org.thymeleaf.context.Context;
 import java.math.BigDecimal;
 import java.text.NumberFormat;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Locale;
 
@@ -42,9 +43,9 @@ public class EmailService {
   @Value("${app.name:Ban Sai Yai Savings Group}")
   private String appName;
 
-  private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("d MMMM yyyy",
-      new Locale("th", "TH"));
-  private static final NumberFormat CURRENCY_FORMAT = NumberFormat.getCurrencyInstance(new Locale("th", "TH"));
+  private static final Locale THAI_LOCALE = Locale.of("th", "TH");
+  private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("d MMMM yyyy", THAI_LOCALE);
+  private static final NumberFormat CURRENCY_FORMAT = NumberFormat.getCurrencyInstance(THAI_LOCALE);
 
   /**
    * Send password reset email.
@@ -80,7 +81,7 @@ public class EmailService {
     context.setVariable("memberName", loan.getMember().getName());
     context.setVariable("loanAmount", formatCurrency(loan.getPrincipalAmount()));
     context.setVariable("loanType", loan.getLoanType().name());
-    context.setVariable("applicationDate", formatDate(loan.getApplicationDate()));
+    context.setVariable("applicationDate", formatDate(loan.getCreatedAt()));
 
     sendTemplatedEmail(approver.getEmail(), "คำขอกู้ใหม่รอการอนุมัติ - " + appName,
         "email/loan-submission-notification", context);
@@ -101,7 +102,7 @@ public class EmailService {
     context.setVariable("memberName", member.getName());
     context.setVariable("loanAmount", formatCurrency(loan.getPrincipalAmount()));
     context.setVariable("loanType", loan.getLoanType().name());
-    context.setVariable("applicationDate", formatDate(loan.getApplicationDate()));
+    context.setVariable("applicationDate", formatDate(loan.getCreatedAt()));
     context.setVariable("loanNumber", loan.getLoanNumber());
 
     sendTemplatedEmail(member.getEmail(), "ยืนยันการยื่นคำขอกู้ - " + appName,
@@ -238,5 +239,11 @@ public class EmailService {
     if (date == null)
       return "";
     return date.format(DATE_FORMATTER);
+  }
+
+  private String formatDate(LocalDateTime dateTime) {
+    if (dateTime == null)
+      return "";
+    return dateTime.toLocalDate().format(DATE_FORMATTER);
   }
 }

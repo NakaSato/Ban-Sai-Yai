@@ -5,9 +5,11 @@ import com.bansaiyai.bansaiyai.entity.User;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -223,4 +225,32 @@ public interface AuditLogRepository extends JpaRepository<AuditLog, Long> {
        @Query("SELECT COUNT(a) FROM AuditLog a WHERE a.action = 'ACCESS_DENIED' " +
                      "AND a.timestamp BETWEEN :startTime AND :endTime")
        long countRoleViolations(@Param("startTime") LocalDateTime startTime, @Param("endTime") LocalDateTime endTime);
+
+       /**
+        * Delete audit logs older than the specified date.
+        * Used for retention policy - typically delete logs older than 1 year.
+        *
+        * @param cutoffDate the cutoff date
+        * @return the number of deleted records
+        */
+       @Modifying
+       @Transactional
+       @Query("DELETE FROM AuditLog a WHERE a.timestamp < :cutoffDate")
+       int deleteOldLogs(@Param("cutoffDate") LocalDateTime cutoffDate);
+
+       /**
+        * Find old audit logs for archiving before deletion.
+        *
+        * @param cutoffDate the cutoff date
+        * @return list of audit logs older than cutoff date
+        */
+       List<AuditLog> findByTimestampBefore(LocalDateTime cutoffDate);
+
+       /**
+        * Count old audit logs.
+        *
+        * @param cutoffDate the cutoff date
+        * @return count of logs older than cutoff date
+        */
+       long countByTimestampBefore(LocalDateTime cutoffDate);
 }
