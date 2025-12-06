@@ -3,8 +3,6 @@ package com.bansaiyai.bansaiyai.entity;
 import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.FieldNameConstants;
-import org.springframework.data.annotation.CreatedBy;
-import org.springframework.data.annotation.LastModifiedBy;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 import java.time.LocalDateTime;
 import java.util.HashSet;
@@ -43,6 +41,15 @@ public class User extends BaseEntity {
   @Column(nullable = false)
   private Role role;
 
+  @ManyToOne(fetch = FetchType.EAGER)
+  @JoinColumn(name = "role_id")
+  private com.bansaiyai.bansaiyai.entity.Role rbacRole;
+
+  @Enumerated(EnumType.STRING)
+  @Column(nullable = false)
+  @Builder.Default
+  private UserStatus status = UserStatus.ACTIVE;
+
   @Column(nullable = false)
   private Boolean enabled = true;
 
@@ -75,6 +82,9 @@ public class User extends BaseEntity {
 
   @Column(name = "locked_until")
   private LocalDateTime lockedUntil;
+
+  @Column(name = "deleted_at")
+  private LocalDateTime deletedAt;
 
   @ElementCollection(fetch = FetchType.EAGER)
   @CollectionTable(name = "user_permissions", joinColumns = @JoinColumn(name = "user_id"))
@@ -299,6 +309,30 @@ public class User extends BaseEntity {
     this.member = member;
   }
 
+  public com.bansaiyai.bansaiyai.entity.Role getRbacRole() {
+    return rbacRole;
+  }
+
+  public void setRbacRole(com.bansaiyai.bansaiyai.entity.Role rbacRole) {
+    this.rbacRole = rbacRole;
+  }
+
+  public UserStatus getStatus() {
+    return status;
+  }
+
+  public void setStatus(UserStatus status) {
+    this.status = status;
+  }
+
+  public LocalDateTime getDeletedAt() {
+    return deletedAt;
+  }
+
+  public void setDeletedAt(LocalDateTime deletedAt) {
+    this.deletedAt = deletedAt;
+  }
+
   public void setId(Long id) {
     super.setId(id);
   }
@@ -316,6 +350,8 @@ public class User extends BaseEntity {
     private String lastName;
     private String phoneNumber;
     private Role role;
+    private com.bansaiyai.bansaiyai.entity.Role rbacRole;
+    private UserStatus status = UserStatus.ACTIVE;
     private Boolean enabled = true;
     private Boolean accountNonExpired = true;
     private Boolean accountNonLocked = true;
@@ -327,6 +363,7 @@ public class User extends BaseEntity {
     private LocalDateTime lastLogin;
     private Integer loginAttempts = 0;
     private LocalDateTime lockedUntil;
+    private LocalDateTime deletedAt;
     private Set<String> permissions = new HashSet<>();
     private Member member;
 
@@ -362,6 +399,16 @@ public class User extends BaseEntity {
 
     public UserBuilder role(Role role) {
       this.role = role;
+      return this;
+    }
+
+    public UserBuilder rbacRole(com.bansaiyai.bansaiyai.entity.Role rbacRole) {
+      this.rbacRole = rbacRole;
+      return this;
+    }
+
+    public UserBuilder status(UserStatus status) {
+      this.status = status;
       return this;
     }
 
@@ -420,6 +467,11 @@ public class User extends BaseEntity {
       return this;
     }
 
+    public UserBuilder deletedAt(LocalDateTime deletedAt) {
+      this.deletedAt = deletedAt;
+      return this;
+    }
+
     public UserBuilder permissions(Set<String> permissions) {
       this.permissions = permissions;
       return this;
@@ -439,6 +491,8 @@ public class User extends BaseEntity {
       user.lastName = this.lastName;
       user.phoneNumber = this.phoneNumber;
       user.role = this.role;
+      user.rbacRole = this.rbacRole;
+      user.status = this.status;
       user.enabled = this.enabled;
       user.accountNonExpired = this.accountNonExpired;
       user.accountNonLocked = this.accountNonLocked;
@@ -450,6 +504,7 @@ public class User extends BaseEntity {
       user.lastLogin = this.lastLogin;
       user.loginAttempts = this.loginAttempts;
       user.lockedUntil = this.lockedUntil;
+      user.deletedAt = this.deletedAt;
       user.permissions = this.permissions;
       user.member = this.member;
       return user;
@@ -462,5 +517,10 @@ public class User extends BaseEntity {
     SECRETARY,
     OFFICER,
     MEMBER
+  }
+
+  public enum UserStatus {
+    ACTIVE,
+    SUSPENDED
   }
 }

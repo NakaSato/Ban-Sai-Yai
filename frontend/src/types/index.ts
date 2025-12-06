@@ -12,10 +12,10 @@ export interface User {
 }
 
 export enum UserRole {
-  PRESIDENT = 'PRESIDENT',
-  SECRETARY = 'SECRETARY',
-  OFFICER = 'OFFICER',
-  MEMBER = 'MEMBER'
+  PRESIDENT = "PRESIDENT",
+  SECRETARY = "SECRETARY",
+  OFFICER = "OFFICER",
+  MEMBER = "MEMBER",
 }
 
 export interface AuthState {
@@ -41,6 +41,41 @@ export interface LoginResponse {
   expiresIn: number;
 }
 
+export interface SignUpRequest {
+  username: string;
+  password: string;
+  confirmPassword: string;
+  email: string;
+  firstName: string;
+  lastName: string;
+  phone?: string;
+  address?: string;
+  dateOfBirth?: string;
+}
+
+export interface LogoutRequest {
+  refreshToken?: string;
+}
+
+export interface RefreshTokenRequest {
+  token: string;
+}
+
+export interface RefreshTokenResponse {
+  token: string;
+  refreshToken?: string;
+}
+
+export interface ForgotPasswordRequest {
+  email: string;
+}
+
+export interface ResetPasswordRequest {
+  token: string;
+  newPassword: string;
+  confirmPassword: string;
+}
+
 // Member Types
 export interface Member {
   id: string;
@@ -59,9 +94,9 @@ export interface Member {
 }
 
 export enum MemberStatus {
-  ACTIVE = 'ACTIVE',
-  INACTIVE = 'INACTIVE',
-  SUSPENDED = 'SUSPENDED'
+  ACTIVE = "ACTIVE",
+  INACTIVE = "INACTIVE",
+  SUSPENDED = "SUSPENDED",
 }
 
 // Loan Types
@@ -85,19 +120,19 @@ export interface Loan {
 }
 
 export enum LoanType {
-  PERSONAL = 'PERSONAL',
-  BUSINESS = 'BUSINESS',
-  EMERGENCY = 'EMERGENCY',
-  EDUCATION = 'EDUCATION'
+  PERSONAL = "PERSONAL",
+  BUSINESS = "BUSINESS",
+  EMERGENCY = "EMERGENCY",
+  EDUCATION = "EDUCATION",
 }
 
 export enum LoanStatus {
-  PENDING = 'PENDING',
-  APPROVED = 'APPROVED',
-  DISBURSED = 'DISBURSED',
-  REJECTED = 'REJECTED',
-  COMPLETED = 'COMPLETED',
-  DEFAULTED = 'DEFAULTED'
+  PENDING = "PENDING",
+  APPROVED = "APPROVED",
+  DISBURSED = "DISBURSED",
+  REJECTED = "REJECTED",
+  COMPLETED = "COMPLETED",
+  DEFAULTED = "DEFAULTED",
 }
 
 export interface LoanBalance {
@@ -126,11 +161,11 @@ export interface Collateral {
 }
 
 export enum CollateralType {
-  REAL_ESTATE = 'REAL_ESTATE',
-  VEHICLE = 'VEHICLE',
-  JEWELRY = 'JEWELRY',
-  EQUIPMENT = 'EQUIPMENT',
-  OTHER = 'OTHER'
+  REAL_ESTATE = "REAL_ESTATE",
+  VEHICLE = "VEHICLE",
+  JEWELRY = "JEWELRY",
+  EQUIPMENT = "EQUIPMENT",
+  OTHER = "OTHER",
 }
 
 export interface Guarantor {
@@ -163,16 +198,16 @@ export interface SavingAccount {
 }
 
 export enum AccountType {
-  REGULAR = 'REGULAR',
-  SPECIAL = 'SPECIAL',
-  FIXED_DEPOSIT = 'FIXED_DEPOSIT'
+  REGULAR = "REGULAR",
+  SPECIAL = "SPECIAL",
+  FIXED_DEPOSIT = "FIXED_DEPOSIT",
 }
 
 export enum AccountStatus {
-  ACTIVE = 'ACTIVE',
-  INACTIVE = 'INACTIVE',
-  FROZEN = 'FROZEN',
-  CLOSED = 'CLOSED'
+  ACTIVE = "ACTIVE",
+  INACTIVE = "INACTIVE",
+  FROZEN = "FROZEN",
+  CLOSED = "CLOSED",
 }
 
 export interface SavingTransaction {
@@ -189,12 +224,12 @@ export interface SavingTransaction {
 }
 
 export enum TransactionType {
-  DEPOSIT = 'DEPOSIT',
-  WITHDRAWAL = 'WITHDRAWAL',
-  INTEREST = 'INTEREST',
-  FEE = 'FEE',
-  TRANSFER_IN = 'TRANSFER_IN',
-  TRANSFER_OUT = 'TRANSFER_OUT'
+  DEPOSIT = "DEPOSIT",
+  WITHDRAWAL = "WITHDRAWAL",
+  INTEREST = "INTEREST",
+  FEE = "FEE",
+  TRANSFER_IN = "TRANSFER_IN",
+  TRANSFER_OUT = "TRANSFER_OUT",
 }
 
 export interface SavingBalance {
@@ -232,17 +267,17 @@ export interface Payment {
 }
 
 export enum PaymentType {
-  PRINCIPAL = 'PRINCIPAL',
-  INTEREST = 'INTEREST',
-  PENALTY = 'PENALTY',
-  FULL_PAYMENT = 'FULL_PAYMENT'
+  PRINCIPAL = "PRINCIPAL",
+  INTEREST = "INTEREST",
+  PENALTY = "PENALTY",
+  FULL_PAYMENT = "FULL_PAYMENT",
 }
 
 export enum PaymentStatus {
-  PENDING = 'PENDING',
-  PAID = 'PAID',
-  OVERDUE = 'OVERDUE',
-  CANCELLED = 'CANCELLED'
+  PENDING = "PENDING",
+  PAID = "PAID",
+  OVERDUE = "OVERDUE",
+  CANCELLED = "CANCELLED",
 }
 
 // API Response Types
@@ -332,7 +367,7 @@ export interface ChartData {
 // Dashboard Widget Types
 export interface FiscalPeriod {
   period: string;
-  status: 'OPEN' | 'CLOSED';
+  status: "OPEN" | "CLOSED";
 }
 
 export interface MemberSearchResult {
@@ -384,7 +419,7 @@ export interface TableColumn {
   id: string;
   label: string;
   minWidth?: number;
-  align?: 'left' | 'center' | 'right';
+  align?: "left" | "center" | "right";
   format?: (value: any) => string;
 }
 
@@ -392,7 +427,7 @@ export interface FilterParams {
   page?: number;
   size?: number;
   sort?: string;
-  order?: 'asc' | 'desc';
+  order?: "asc" | "desc";
   search?: string;
   status?: string;
   type?: string;

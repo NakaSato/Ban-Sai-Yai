@@ -24,22 +24,23 @@ import {
   AccountBalance,
 } from "@mui/icons-material";
 import { useAppDispatch, useAppSelector } from "@/hooks/redux";
-import {
-  setAuth,
-  setLoading,
-  setError,
-  clearError,
-} from "@/store/slices/authSlice";
+import { setAuth, setError, clearError } from "@/store/slices/authSlice";
 import { useLoginMutation } from "@/store/api/authApi";
 import { useLoginValidation } from "@/hooks/useLoginValidation";
+import type { LoginRequest } from "@/types";
 
 const LoginPage: React.FC = () => {
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
-  const [loginMutation] = useLoginMutation();
-  const { isLoading, error } = useAppSelector((state) => state.auth);
+  const [loginMutation, { isLoading: isMutationLoading }] = useLoginMutation();
+  const { isLoading: isAuthLoading, error } = useAppSelector(
+    (state) => state.auth
+  );
 
-  const [formData, setFormData] = useState({
+  // Combined loading state from RTK Query mutation and auth slice
+  const isLoading = isMutationLoading || isAuthLoading;
+
+  const [formData, setFormData] = useState<LoginRequest>({
     username: "",
     password: "",
     rememberMe: false,
@@ -137,12 +138,7 @@ const LoginPage: React.FC = () => {
     }
 
     try {
-      dispatch(setLoading(true));
-      const response = await loginMutation({
-        username: formData.username,
-        password: formData.password,
-        rememberMe: formData.rememberMe,
-      }).unwrap();
+      const response = await loginMutation(formData).unwrap();
 
       // Set auth with refresh token if provided
       dispatch(
@@ -158,7 +154,9 @@ const LoginPage: React.FC = () => {
       setTimeout(() => {
         navigate("/dashboard");
       }, 1000);
-    } catch (error: any) {
+    } catch (err: unknown) {
+      // Handle RTK Query error format
+      const error = err as { data?: { message?: string }; message?: string };
       const errorMessage =
         error?.data?.message || error?.message || "Login failed";
       dispatch(setError(errorMessage));

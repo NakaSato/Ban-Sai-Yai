@@ -99,7 +99,7 @@ const AppRoutes = () => {
   // Initialize token refresh hook with default configuration
   // Only runs when user is authenticated
   useTokenRefresh({
-    refreshThresholdMinutes: 5,
+    refreshThresholdMinutes: 174,
     maxRetries: 3,
     enabled: isAuthenticated,
   });

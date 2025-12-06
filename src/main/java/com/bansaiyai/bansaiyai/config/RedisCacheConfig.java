@@ -68,6 +68,9 @@ public class RedisCacheConfig {
         // Global caches
         cacheConfigurations.put("fiscalPeriod", defaultConfig.entryTtl(Duration.ofMinutes(30)));
         cacheConfigurations.put("memberSearch", defaultConfig.entryTtl(Duration.ofMinutes(5)));
+        
+        // RBAC caches - longer TTL since permissions rarely change
+        cacheConfigurations.put("rolePermissions", defaultConfig.entryTtl(Duration.ofHours(1)));
 
         return RedisCacheManager.builder(connectionFactory)
                 .cacheDefaults(defaultConfig)

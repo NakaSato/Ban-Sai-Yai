@@ -84,6 +84,7 @@ public class LoanService {
     return convertToResponse(savedLoan);
   }
 
+  @com.bansaiyai.bansaiyai.security.Audited(action = "LOAN_APPROVAL", entityType = "Loan")
   public LoanResponse approveLoan(Long loanId, LoanApprovalRequest approvalRequest, String approvedBy) {
     Loan loan = loanRepository.findById(loanId)
         .orElseThrow(() -> new RuntimeException("Loan not found"));
