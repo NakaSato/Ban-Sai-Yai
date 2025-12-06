@@ -11,7 +11,6 @@ import com.bansaiyai.bansaiyai.repository.AuditLogRepository;
 import com.bansaiyai.bansaiyai.repository.LoanRepository;
 import com.bansaiyai.bansaiyai.repository.MemberRepository;
 import com.bansaiyai.bansaiyai.repository.UserRepository;
-import com.bansaiyai.bansaiyai.security.Audited;
 import com.bansaiyai.bansaiyai.security.UserPrincipal;
 import com.bansaiyai.bansaiyai.service.LoanService;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -31,15 +30,16 @@ import java.util.Map;
 
 /**
  * Property-based tests for AuditAspect.
- * Tests that the @Audited annotation correctly captures state changes for audited methods.
+ * Tests that the @Audited annotation correctly captures state changes for
+ * audited methods.
  * 
  * Requirements: 11.1, 11.2
  */
 @SpringBootTest
 @TestPropertySource(properties = {
-    "spring.datasource.url=jdbc:h2:mem:testdb",
-    "spring.jpa.hibernate.ddl-auto=create-drop",
-    "spring.cache.type=none"
+        "spring.datasource.url=jdbc:h2:mem:testdb",
+        "spring.jpa.hibernate.ddl-auto=create-drop",
+        "spring.cache.type=none"
 })
 public class AuditAspectPropertyTest {
 
@@ -74,24 +74,26 @@ public class AuditAspectPropertyTest {
         if (loanRepository != null) {
             loanRepository.deleteAll();
         }
-        
+
         // Create test user and member
         testUser = createTestUser();
         testMember = createTestMember();
-        
+
         // Set up security context
         UserPrincipal userPrincipal = UserPrincipal.create(testUser);
         SecurityContextHolder.getContext().setAuthentication(
-            new UsernamePasswordAuthenticationToken(userPrincipal, null, userPrincipal.getAuthorities())
-        );
+                new UsernamePasswordAuthenticationToken(userPrincipal, null, userPrincipal.getAuthorities()));
     }
 
     /**
-     * Feature: rbac-security-system, Property 31: Loan approval audit with state capture
+     * Feature: rbac-security-system, Property 31: Loan approval audit with state
+     * capture
      * Validates: Requirements 11.2
      * 
-     * For any loan approval or rejection, the system should create an audit log entry 
-     * containing both old values (previous loan state) and new values (updated loan state).
+     * For any loan approval or rejection, the system should create an audit log
+     * entry
+     * containing both old values (previous loan state) and new values (updated loan
+     * state).
      * 
      * This property verifies that:
      * 1. An audit log is created when a loan is approved/rejected
@@ -100,9 +102,11 @@ public class AuditAspectPropertyTest {
      * 4. Both states are stored in valid JSON format
      * 5. The state change can be reconstructed from the audit log
      * 
-     * NOTE: This test is currently disabled due to jqwik + Spring Boot integration issues.
+     * NOTE: This test is currently disabled due to jqwik + Spring Boot integration
+     * issues.
      * jqwik does not support Spring's dependency injection out of the box.
-     * The actual functionality is working correctly (verified by integration tests).
+     * The actual functionality is working correctly (verified by integration
+     * tests).
      */
     // @Property(tries = 100)
     // @Transactional
@@ -111,22 +115,23 @@ public class AuditAspectPropertyTest {
             @ForAll("interestRates") BigDecimal interestRate,
             @ForAll("loanTerms") Integer termMonths,
             @ForAll("approvalDecisions") boolean approved) {
-        
+
         // Setup: Create a pending loan
         Loan loan = createPendingLoan(principalAmount, interestRate, termMonths);
         loan = loanRepository.save(loan);
-        
-        // Capture the initial state
+
+        // Capture and verify the initial state
         LoanStatus oldStatus = loan.getStatus();
-        
+        System.out.println("Initial loan status: " + oldStatus);
+
         // Get initial audit log count
         long initialAuditCount = auditLogRepository.count();
-        
+
         // Action: Approve or reject the loan
         LoanApprovalRequest approvalRequest = new LoanApprovalRequest();
         approvalRequest.setApprovedAmount(principalAmount);
         approvalRequest.setApprovalNotes(approved ? "Approved by test" : "Rejected by test");
-        
+
         try {
             loanService.approveLoan(loan.getId(), approvalRequest, testUser.getUsername());
         } catch (Exception e) {
@@ -134,76 +139,79 @@ public class AuditAspectPropertyTest {
             // We're testing that IF a loan is approved, it's audited correctly
             Assume.that(false); // Skip this iteration
         }
-        
+
         // Property 1: An audit log entry should be created
         long finalAuditCount = auditLogRepository.count();
-        assert finalAuditCount > initialAuditCount :
-                String.format("Audit log count should increase: initial=%d, final=%d", 
+        assert finalAuditCount > initialAuditCount
+                : String.format("Audit log count should increase: initial=%d, final=%d",
                         initialAuditCount, finalAuditCount);
-        
+
         // Retrieve the audit log for this loan
         List<AuditLog> logs = auditLogRepository.findByEntity("Loan", loan.getId());
-        
+
         assert !logs.isEmpty() : "Should find at least one audit log for the loan";
-        
+
         AuditLog auditLog = logs.get(0);
-        
+
         // Property 2: The audit log should contain the user who performed the action
         assert auditLog.getUser() != null : "Audit log should have a user";
-        assert auditLog.getUser().getId().equals(testUser.getId()) :
-                String.format("User ID should match: expected=%d, actual=%d",
+        assert auditLog.getUser().getId().equals(testUser.getId())
+                : String.format("User ID should match: expected=%d, actual=%d",
                         testUser.getId(), auditLog.getUser().getId());
-        
+
         // Property 3: The audit log should have a timestamp
         assert auditLog.getTimestamp() != null : "Audit log should have a timestamp";
-        
+
         // Property 4: The audit log should capture old values (previous state)
         assert auditLog.getOldValues() != null : "Old values should not be null";
-        
+
         try {
             Map<?, ?> oldValues = objectMapper.readValue(auditLog.getOldValues(), Map.class);
-            
+
             // The old state should contain the PENDING status
-            assert oldValues.containsKey("status") || oldValues.containsKey("arg0") :
-                    "Old values should contain status information";
-            
+            assert oldValues.containsKey("status") || oldValues.containsKey("arg0")
+                    : "Old values should contain status information";
+
         } catch (Exception e) {
             throw new AssertionError("Old values should be valid JSON: " + e.getMessage());
         }
-        
+
         // Property 5: The audit log should capture new values (updated state)
         assert auditLog.getNewValues() != null : "New values should not be null";
-        
+
         try {
             Map<?, ?> newValues = objectMapper.readValue(auditLog.getNewValues(), Map.class);
-            
+
             // The new state should reflect the approval/rejection
             // It should contain information about the loan's new state
             assert !newValues.isEmpty() : "New values should not be empty";
-            
+
         } catch (Exception e) {
             throw new AssertionError("New values should be valid JSON: " + e.getMessage());
         }
-        
+
         // Property 6: The state change should be reconstructable from the audit log
         // This verifies that we have enough information to understand what changed
         try {
-            Map<?, ?> oldValues = objectMapper.readValue(auditLog.getOldValues(), Map.class);
-            Map<?, ?> newValues = objectMapper.readValue(auditLog.getNewValues(), Map.class);
-            
+            Map<?, ?> reconstructedOldValues = objectMapper.readValue(auditLog.getOldValues(), Map.class);
+            Map<?, ?> reconstructedNewValues = objectMapper.readValue(auditLog.getNewValues(), Map.class);
+
+            // Log the reconstructed values for debugging
+            System.out.println("Reconstructed old values: " + reconstructedOldValues);
+            System.out.println("Reconstructed new values: " + reconstructedNewValues);
+
             // We should be able to identify that this was a loan approval/rejection
-            assert auditLog.getEntityType().equals("Loan") || 
-                   auditLog.getEntityType().equals("Entity") :
-                    "Entity type should indicate this is a loan operation";
-            
-            assert auditLog.getEntityId().equals(loan.getId()) :
-                    String.format("Entity ID should match loan ID: expected=%d, actual=%d",
+            assert auditLog.getEntityType().equals("Loan") ||
+                    auditLog.getEntityType().equals("Entity") : "Entity type should indicate this is a loan operation";
+
+            assert auditLog.getEntityId().equals(loan.getId())
+                    : String.format("Entity ID should match loan ID: expected=%d, actual=%d",
                             loan.getId(), auditLog.getEntityId());
-            
+
         } catch (Exception e) {
             throw new AssertionError("Should be able to reconstruct state change: " + e.getMessage());
         }
-        
+
         // Property 7: The audit log should be immutable (stored permanently)
         // Verify the log still exists after the transaction
         AuditLog retrievedLog = auditLogRepository.findById(auditLog.getLogId()).orElse(null);
@@ -223,7 +231,7 @@ public class AuditAspectPropertyTest {
                 .role(User.Role.PRESIDENT) // President can approve loans
                 .enabled(true)
                 .build();
-        
+
         return userRepository.save(user);
     }
 
@@ -241,7 +249,7 @@ public class AuditAspectPropertyTest {
                 .registrationDate(LocalDate.now())
                 .isActive(true)
                 .build();
-        
+
         return memberRepository.save(member);
     }
 

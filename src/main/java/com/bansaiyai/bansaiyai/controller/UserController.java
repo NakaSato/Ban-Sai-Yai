@@ -113,7 +113,6 @@ public class UserController {
 
     try {
       User currentUser = getCurrentUser(authentication);
-      User.Role newRole = User.Role.valueOf(request.getRole());
 
       User updatedUser = userService.updateUserRole(id, request.getRole(), currentUser);
 

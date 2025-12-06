@@ -13,7 +13,9 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * REST controller for audit dashboard endpoints.
@@ -86,15 +88,14 @@ public class AuditController {
       @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime endDate) {
     log.info("President requested audit summary for period: {} to {}", startDate, endDate);
 
-    var summary = new Object() {
-      public final List<CriticalActionDTO> criticalActions = auditService.getCriticalActions();
-      public final List<AuditLogDTO> roleViolations = auditService.getRoleViolations();
-      public final List<ActivityHeatmapDTO> activityHeatmap = auditService.getActivityHeatmap(startDate, endDate);
-      public final List<SecurityAlertDTO> offHoursAlerts = auditService.getOffHoursAlerts(startDate, endDate);
-      public final long totalAudits = auditService.getTotalAuditCount(startDate, endDate);
-      public final long criticalCount = auditService.getCriticalActionCount(startDate, endDate);
-      public final long violationCount = auditService.getRoleViolationCount(startDate, endDate);
-    };
+    Map<String, Object> summary = new LinkedHashMap<>();
+    summary.put("criticalActions", auditService.getCriticalActions());
+    summary.put("roleViolations", auditService.getRoleViolations());
+    summary.put("activityHeatmap", auditService.getActivityHeatmap(startDate, endDate));
+    summary.put("offHoursAlerts", auditService.getOffHoursAlerts(startDate, endDate));
+    summary.put("totalAudits", auditService.getTotalAuditCount(startDate, endDate));
+    summary.put("criticalCount", auditService.getCriticalActionCount(startDate, endDate));
+    summary.put("violationCount", auditService.getRoleViolationCount(startDate, endDate));
 
     return ResponseEntity.ok(summary);
   }

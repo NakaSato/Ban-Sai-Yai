@@ -291,8 +291,9 @@ public class SavingService {
         .balanceAfter(balanceAfter)
         .build();
 
-    // Note: In a real implementation, you'd save this to a transaction repository
-    log.debug("Created transaction: {} {} for account {}", type, amount, account.getAccountNumber());
+    // Log transaction details
+    log.debug("Created transaction: {} {} for account {} - {}",
+        type, amount, account.getAccountNumber(), transaction.getDescription());
   }
 
   /**

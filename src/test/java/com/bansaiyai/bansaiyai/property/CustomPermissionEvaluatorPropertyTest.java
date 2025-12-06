@@ -9,7 +9,6 @@ import com.bansaiyai.bansaiyai.repository.RoleRepository;
 import com.bansaiyai.bansaiyai.repository.UserRepository;
 import com.bansaiyai.bansaiyai.security.CustomPermissionEvaluator;
 import com.bansaiyai.bansaiyai.security.UserPrincipal;
-import com.bansaiyai.bansaiyai.service.RolePermissionService;
 import net.jqwik.api.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -27,23 +26,21 @@ import java.util.stream.Collectors;
  * Property-based tests for CustomPermissionEvaluator.
  * Tests universal properties that should hold across all valid inputs.
  * 
- * NOTE: These tests are currently disabled due to jqwik + Spring Boot integration issues.
+ * NOTE: These tests are currently disabled due to jqwik + Spring Boot
+ * integration issues.
  * jqwik does not support Spring's dependency injection out of the box.
  * The actual functionality is working correctly (verified by unit tests).
  */
 @SpringBootTest
 @TestPropertySource(properties = {
-    "spring.datasource.url=jdbc:h2:mem:testdb",
-    "spring.jpa.hibernate.ddl-auto=create-drop",
-    "spring.cache.type=none"
+        "spring.datasource.url=jdbc:h2:mem:testdb",
+        "spring.jpa.hibernate.ddl-auto=create-drop",
+        "spring.cache.type=none"
 })
 public class CustomPermissionEvaluatorPropertyTest {
 
     @Autowired
     private CustomPermissionEvaluator customPermissionEvaluator;
-
-    @Autowired
-    private RolePermissionService rolePermissionService;
 
     @Autowired
     private RoleRepository roleRepository;
@@ -53,7 +50,7 @@ public class CustomPermissionEvaluatorPropertyTest {
 
     @Autowired
     private UserRepository userRepository;
-    
+
     @BeforeEach
     @Transactional
     public void setUp() {
@@ -70,13 +67,16 @@ public class CustomPermissionEvaluatorPropertyTest {
     }
 
     /**
-     * Feature: rbac-security-system, Property 5: Permission-based action authorization
+     * Feature: rbac-security-system, Property 5: Permission-based action
+     * authorization
      * Validates: Requirements 2.2
      * 
-     * For any user action attempt, the system should allow the action if and only if 
+     * For any user action attempt, the system should allow the action if and only
+     * if
      * the user's role has the required permission slug for that action.
      * 
-     * NOTE: This test is currently disabled due to jqwik + Spring Boot integration issues.
+     * NOTE: This test is currently disabled due to jqwik + Spring Boot integration
+     * issues.
      * jqwik does not support Spring's dependency injection out of the box.
      * The actual functionality is working correctly (verified by unit tests).
      */
@@ -85,52 +85,53 @@ public class CustomPermissionEvaluatorPropertyTest {
     void DISABLED_permissionBasedActionAuthorization(
             @ForAll("roleNames") String roleName,
             @ForAll("permissionSlugs") String permissionSlug) {
-        
+
         // Setup: Create role with specific permissions
         Role role = setupRoleWithPermissions(roleName);
-        
-        // Setup: Ensure the permission exists
+
+        // Setup: Ensure the permission exists and log it
         Permission permission = setupPermission(permissionSlug);
-        
+        System.out.println("Testing permission: " + permission.getPermSlug());
+
         // Get the actual permissions for this role
         Set<String> rolePermissions = role.getPermissions().stream()
                 .map(Permission::getPermSlug)
                 .collect(Collectors.toSet());
-        
+
         // Create a user with this role
         User user = setupUserWithRole(roleName);
-        
+
         // Create authentication object
         UserPrincipal userPrincipal = UserPrincipal.create(user);
         Authentication authentication = new UsernamePasswordAuthenticationToken(
                 userPrincipal, null, userPrincipal.getAuthorities());
-        
+
         // Check if the user has the permission through the evaluator
         boolean hasPermission = customPermissionEvaluator.hasPermission(
                 authentication, null, permissionSlug);
-        
+
         // Property: User should have permission if and only if their role has it
         boolean shouldHavePermission = rolePermissions.contains(permissionSlug);
-        
-        assert hasPermission == shouldHavePermission :
-                String.format("User with role %s %s permission %s, but evaluator returned %s",
+
+        assert hasPermission == shouldHavePermission
+                : String.format("User with role %s %s permission %s, but evaluator returned %s",
                         roleName,
                         shouldHavePermission ? "should have" : "should not have",
                         permissionSlug,
                         hasPermission);
-        
+
         // Property: If role has permission, user must be authorized
         if (rolePermissions.contains(permissionSlug)) {
-            assert hasPermission :
-                    String.format("User with role %s has permission %s in role, but evaluator denied access",
+            assert hasPermission
+                    : String.format("User with role %s has permission %s in role, but evaluator denied access",
                             roleName, permissionSlug);
         }
-        
+
         // Property: If role doesn't have permission, user must be denied
         if (!rolePermissions.contains(permissionSlug)) {
-            assert !hasPermission :
-                    String.format("User with role %s does not have permission %s in role, but evaluator granted access",
-                            roleName, permissionSlug);
+            assert !hasPermission : String.format(
+                    "User with role %s does not have permission %s in role, but evaluator granted access",
+                    roleName, permissionSlug);
         }
     }
 
@@ -138,10 +139,12 @@ public class CustomPermissionEvaluatorPropertyTest {
      * Feature: rbac-security-system, Property 50: Self-approval denial
      * Validates: Requirements 15.3
      * 
-     * For any approval attempt where the approver's user ID matches the creator's user ID, 
+     * For any approval attempt where the approver's user ID matches the creator's
+     * user ID,
      * the system should deny the approval operation.
      * 
-     * NOTE: This test is currently disabled due to jqwik + Spring Boot integration issues.
+     * NOTE: This test is currently disabled due to jqwik + Spring Boot integration
+     * issues.
      * jqwik does not support Spring's dependency injection out of the box.
      * The actual functionality is working correctly (verified by unit tests).
      */
@@ -150,34 +153,34 @@ public class CustomPermissionEvaluatorPropertyTest {
     void DISABLED_selfApprovalDenial(
             @ForAll("usernames") String username,
             @ForAll("roleNames") String roleName) {
-        
+
         // Setup: Create a user
         User user = setupUserWithRole(roleName);
         user.setUsername(username);
         user = userRepository.save(user);
-        
+
         // Setup: Create a transaction created by this user
         Payment transaction = new Payment();
         transaction.setCreatedBy(user.getUsername());
         transaction.setPaymentNumber("PAY" + System.currentTimeMillis());
-        
+
         // Property: User should NOT be able to approve their own transaction
         boolean canApprove = customPermissionEvaluator.canApproveOwnTransaction(user, transaction);
-        
-        assert !canApprove :
-                String.format("User %s should not be able to approve their own transaction, but was allowed",
+
+        assert !canApprove
+                : String.format("User %s should not be able to approve their own transaction, but was allowed",
                         username);
-        
+
         // Property: Different user should be able to approve
         User differentUser = setupUserWithRole(roleName);
         differentUser.setUsername(username + "_different");
         differentUser = userRepository.save(differentUser);
-        
+
         boolean differentUserCanApprove = customPermissionEvaluator.canApproveOwnTransaction(
                 differentUser, transaction);
-        
-        assert differentUserCanApprove :
-                String.format("Different user %s should be able to approve transaction created by %s, but was denied",
+
+        assert differentUserCanApprove
+                : String.format("Different user %s should be able to approve transaction created by %s, but was denied",
                         differentUser.getUsername(), username);
     }
 
@@ -190,23 +193,23 @@ public class CustomPermissionEvaluatorPropertyTest {
     void DISABLED_selfApprovalWithNullCreator(
             @ForAll("usernames") String username,
             @ForAll("roleNames") String roleName) {
-        
+
         // Setup: Create a user
         User user = setupUserWithRole(roleName);
         user.setUsername(username);
         user = userRepository.save(user);
-        
+
         // Setup: Create a transaction with no creator
         Payment transaction = new Payment();
         transaction.setCreatedBy(null);
         transaction.setPaymentNumber("PAY" + System.currentTimeMillis());
-        
+
         // Property: When creator is null, approval should be allowed
         // (This handles legacy transactions or system-generated transactions)
         boolean canApprove = customPermissionEvaluator.canApproveOwnTransaction(user, transaction);
-        
-        assert canApprove :
-                String.format("User %s should be able to approve transaction with null creator, but was denied",
+
+        assert canApprove
+                : String.format("User %s should be able to approve transaction with null creator, but was denied",
                         username);
     }
 
@@ -221,10 +224,10 @@ public class CustomPermissionEvaluatorPropertyTest {
             newRole.setRoleName(roleName);
             newRole.setDescription("Test role: " + roleName);
             newRole.setPermissions(new HashSet<>());
-            
+
             // Add role-specific default permissions
             Set<Permission> defaultPermissions = new HashSet<>();
-            
+
             switch (roleName) {
                 case "ROLE_OFFICER":
                     defaultPermissions.add(setupPermission("transaction.create"));
@@ -245,11 +248,11 @@ public class CustomPermissionEvaluatorPropertyTest {
                     defaultPermissions.add(setupPermission("member.view"));
                     break;
             }
-            
+
             newRole.setPermissions(defaultPermissions);
             return roleRepository.save(newRole);
         });
-        
+
         return role;
     }
 
@@ -272,7 +275,7 @@ public class CustomPermissionEvaluatorPropertyTest {
     private User setupUserWithRole(String roleName) {
         Role role = roleRepository.findByRoleName(roleName)
                 .orElseThrow(() -> new IllegalStateException("Role not found: " + roleName));
-        
+
         User user = new User();
         user.setUsername("testuser_" + System.currentTimeMillis());
         user.setEmail("test_" + System.currentTimeMillis() + "@example.com");
@@ -280,7 +283,7 @@ public class CustomPermissionEvaluatorPropertyTest {
         user.setRole(User.Role.MEMBER);
         user.setRbacRole(role);
         user.setEnabled(true);
-        
+
         return userRepository.save(user);
     }
 
@@ -306,8 +309,7 @@ public class CustomPermissionEvaluatorPropertyTest {
                 "ROLE_OFFICER",
                 "ROLE_SECRETARY",
                 "ROLE_PRESIDENT",
-                "ROLE_MEMBER"
-        );
+                "ROLE_MEMBER");
     }
 
     /**
@@ -330,8 +332,7 @@ public class CustomPermissionEvaluatorPropertyTest {
                 "audit.view",
                 "system.manage_users",
                 "report.operational",
-                "report.financial"
-        );
+                "report.financial");
     }
 
     /**

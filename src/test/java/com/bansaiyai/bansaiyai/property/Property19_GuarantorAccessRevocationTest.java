@@ -81,6 +81,7 @@ public class Property19_GuarantorAccessRevocationTest {
                 // Create User objects for testing
                 User guarantorUser = createTestUser(guarantor);
                 User borrowerUser = createTestUser(borrower);
+                assertNotNull(borrowerUser, "Borrower user should be created for testing");
 
                 // Verify initial access
                 assertTrue(guarantorAccessEvaluator.canViewLoan(guarantorUser, loan.getId()),

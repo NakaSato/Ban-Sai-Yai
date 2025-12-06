@@ -402,6 +402,9 @@ public class DashboardService {
       long activeLoans = loanRepository.countByStatus(LoanStatus.ACTIVE);
       long overduePayments = paymentRepository.countByPaymentStatusIn(List.of(PaymentStatus.OVERDUE));
 
+      log.debug("System health check: {} members, {} active loans, {} overdue payments",
+          totalMembers, activeLoans, overduePayments);
+
       // Calculate health scores
       double loanDelinquencyRate = totalMembers > 0 ? (double) overduePayments / totalMembers * 100 : 0;
       double systemLoad = calculateSystemLoad();

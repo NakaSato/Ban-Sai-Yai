@@ -8,14 +8,12 @@ import com.bansaiyai.bansaiyai.entity.User;
 import com.bansaiyai.bansaiyai.repository.CashReconciliationRepository;
 import com.bansaiyai.bansaiyai.service.CashReconciliationService;
 import net.jqwik.api.*;
-import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
-import java.time.LocalDate;
 import java.util.List;
 import java.util.Random;
 
@@ -53,6 +51,7 @@ public class Property24_VarianceEscalationTest {
                 BigDecimal physicalCash = BigDecimal.valueOf(random.nextDouble(1000.0, 10000.0));
                 BigDecimal databaseBalance = physicalCash.add(
                                 BigDecimal.valueOf(random.nextDouble(-500.0, 500.0)));
+                System.out.println("Testing with physical: " + physicalCash + ", database: " + databaseBalance);
 
                 CashReconciliationRequest request = new CashReconciliationRequest();
                 request.setPhysicalCount(physicalCash);
@@ -81,6 +80,7 @@ public class Property24_VarianceEscalationTest {
 
                 // Assert: Secretary should be able to view pending reconciliations
                 User secretary = createSecretaryUser();
+                assertNotNull(secretary, "Secretary user should be created");
                 List<CashReconciliation> pendingReconciliations = cashReconciliationService.getPendingReconciliations();
 
                 assertFalse(pendingReconciliations.isEmpty(),
@@ -135,7 +135,7 @@ public class Property24_VarianceEscalationTest {
 
                 // Arrange: Create reconciliation with variance
                 BigDecimal physicalCash = BigDecimal.valueOf(random.nextDouble(1000.0, 10000.0));
-                BigDecimal databaseBalance = physicalCash.add(BigDecimal.valueOf(100.0)); // $100 variance
+                // Note: Database balance would be physicalCash + $100 variance
 
                 CashReconciliationRequest request = new CashReconciliationRequest();
                 request.setPhysicalCount(physicalCash);
@@ -145,6 +145,7 @@ public class Property24_VarianceEscalationTest {
                 CashReconciliation reconciliation = cashReconciliationService.createReconciliation(
                                 request.getPhysicalCount(), officer, request.getNotes());
                 CashReconciliationResponse response = CashReconciliationResponse.fromEntity(reconciliation);
+                assertNotNull(response, "Response should not be null");
 
                 // Act: Secretary approves variance
                 User secretary = createSecretaryUser();
@@ -173,7 +174,7 @@ public class Property24_VarianceEscalationTest {
 
                 // Arrange: Create reconciliation with variance
                 BigDecimal physicalCash = BigDecimal.valueOf(random.nextDouble(1000.0, 10000.0));
-                BigDecimal databaseBalance = physicalCash.subtract(BigDecimal.valueOf(50.0)); // -$50 variance
+                // Note: Database balance would be physicalCash - $50 variance
 
                 CashReconciliationRequest request = new CashReconciliationRequest();
                 request.setPhysicalCount(physicalCash);
@@ -183,6 +184,7 @@ public class Property24_VarianceEscalationTest {
                 CashReconciliation reconciliation = cashReconciliationService.createReconciliation(
                                 request.getPhysicalCount(), officer, request.getNotes());
                 CashReconciliationResponse response = CashReconciliationResponse.fromEntity(reconciliation);
+                assertNotNull(response, "Response should not be null");
 
                 // Act: Secretary rejects variance
                 User secretary = createSecretaryUser();
@@ -211,7 +213,7 @@ public class Property24_VarianceEscalationTest {
 
                 // Arrange: Create reconciliation with variance as Officer
                 BigDecimal physicalCash = BigDecimal.valueOf(random.nextDouble(1000.0, 10000.0));
-                BigDecimal databaseBalance = physicalCash.add(BigDecimal.valueOf(75.0)); // $75 variance
+                // Note: Database balance would be physicalCash + $75 variance
 
                 CashReconciliationRequest request = new CashReconciliationRequest();
                 request.setPhysicalCount(physicalCash);

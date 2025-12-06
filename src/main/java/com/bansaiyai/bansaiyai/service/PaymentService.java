@@ -38,7 +38,6 @@ public class PaymentService {
   private final MemberRepository memberRepository;
   private final LoanRepository loanRepository;
   private final SavingRepository savingRepository;
-  private final LoanService loanService;
   private final SavingService savingService;
 
   /**

@@ -1,11 +1,9 @@
 package com.bansaiyai.bansaiyai.service;
 
-import com.bansaiyai.bansaiyai.entity.AuditLog;
 import com.bansaiyai.bansaiyai.entity.User;
 import com.bansaiyai.bansaiyai.security.AuditAspect;
 import com.bansaiyai.bansaiyai.security.Audited;
 import com.bansaiyai.bansaiyai.security.UserPrincipal;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.reflect.MethodSignature;
 import org.junit.jupiter.api.BeforeEach;
@@ -29,7 +27,8 @@ import static org.mockito.Mockito.*;
  * Unit test for AuditAspect.
  * Tests that the @Audited annotation correctly captures state changes.
  * 
- * Feature: rbac-security-system, Property 31: Loan approval audit with state capture
+ * Feature: rbac-security-system, Property 31: Loan approval audit with state
+ * capture
  * Validates: Requirements 11.1, 11.2
  */
 @ExtendWith(MockitoExtension.class)
@@ -48,7 +47,6 @@ public class AuditAspectTest {
     private MethodSignature signature;
 
     private User testUser;
-    private ObjectMapper objectMapper;
 
     @BeforeEach
     public void setUp() {
@@ -65,16 +63,14 @@ public class AuditAspectTest {
         // Set up security context
         UserPrincipal userPrincipal = UserPrincipal.create(testUser);
         SecurityContextHolder.getContext().setAuthentication(
-            new UsernamePasswordAuthenticationToken(userPrincipal, null, userPrincipal.getAuthorities())
-        );
-
-        objectMapper = new ObjectMapper();
+                new UsernamePasswordAuthenticationToken(userPrincipal, null, userPrincipal.getAuthorities()));
     }
 
     /**
      * Test that the audit aspect captures method execution and logs it.
      * 
-     * Feature: rbac-security-system, Property 31: Loan approval audit with state capture
+     * Feature: rbac-security-system, Property 31: Loan approval audit with state
+     * capture
      * Validates: Requirements 11.2
      */
     @Test
@@ -82,10 +78,11 @@ public class AuditAspectTest {
         // Setup: Create a mock method with @Audited annotation
         Method method = TestService.class.getMethod("approveEntity", Long.class, String.class);
         Audited auditedAnnotation = method.getAnnotation(Audited.class);
+        assertNotNull(auditedAnnotation, "Method should have @Audited annotation");
 
         when(joinPoint.getSignature()).thenReturn(signature);
         when(signature.getMethod()).thenReturn(method);
-        when(joinPoint.getArgs()).thenReturn(new Object[]{1L, "Approved"});
+        when(joinPoint.getArgs()).thenReturn(new Object[] { 1L, "Approved" });
         when(joinPoint.proceed()).thenReturn("Success");
 
         // Action: Execute the aspect
@@ -108,8 +105,7 @@ public class AuditAspectTest {
                 entityTypeCaptor.capture(),
                 entityIdCaptor.capture(),
                 oldValuesCaptor.capture(),
-                newValuesCaptor.capture()
-        );
+                newValuesCaptor.capture());
 
         // Property 1: The user should be captured
         assertEquals(testUser.getId(), userCaptor.getValue().getId());
@@ -140,7 +136,7 @@ public class AuditAspectTest {
 
         when(joinPoint.getSignature()).thenReturn(signature);
         when(signature.getMethod()).thenReturn(method);
-        when(joinPoint.getArgs()).thenReturn(new Object[]{1L, "Approved"});
+        when(joinPoint.getArgs()).thenReturn(new Object[] { 1L, "Approved" });
         when(joinPoint.proceed()).thenThrow(new RuntimeException("Test exception"));
 
         // Action & Verify: Execute the aspect and expect exception
@@ -158,8 +154,7 @@ public class AuditAspectTest {
                 anyString(),
                 anyLong(),
                 any(),
-                newValuesCaptor.capture()
-        );
+                newValuesCaptor.capture());
 
         // Property: Failed actions should be logged with _FAILED suffix
         assertTrue(actionCaptor.getValue().endsWith("_FAILED"));
@@ -173,7 +168,8 @@ public class AuditAspectTest {
     }
 
     /**
-     * Test that the audit aspect works without authenticated user (graceful degradation).
+     * Test that the audit aspect works without authenticated user (graceful
+     * degradation).
      */
     @Test
     public void testAuditAspectWithoutAuthenticatedUser() throws Throwable {

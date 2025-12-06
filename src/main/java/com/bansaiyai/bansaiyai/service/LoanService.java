@@ -37,6 +37,15 @@ public class LoanService {
   private static final int MIN_TERM_MONTHS = 1;
   private static final int MAX_TERM_MONTHS = 120;
 
+  /**
+   * Get the maximum loan to savings ratio allowed.
+   * 
+   * @return the max loan to savings ratio
+   */
+  public static BigDecimal getMaxLoanToSavingsRatio() {
+    return MAX_LOAN_TO_SAVINGS_RATIO;
+  }
+
   public LoanResponse createLoanApplication(LoanApplicationRequest request, String createdBy) {
     log.info("Creating loan application for member ID: {}", request.getMemberId());
 
