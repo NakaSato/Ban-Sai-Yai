@@ -18,7 +18,6 @@ import com.bansaiyai.bansaiyai.repository.MemberRepository;
 import com.bansaiyai.bansaiyai.repository.SavingRepository;
 import com.bansaiyai.bansaiyai.repository.SavingTransactionRepository;
 import com.bansaiyai.bansaiyai.repository.PaymentRepository;
-import com.bansaiyai.bansaiyai.service.AuditService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.security.access.AccessDeniedException;

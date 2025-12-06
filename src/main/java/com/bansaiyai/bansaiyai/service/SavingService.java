@@ -1,8 +1,5 @@
 package com.bansaiyai.bansaiyai.service;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.bansaiyai.bansaiyai.dto.SavingAccountRequest;
 import com.bansaiyai.bansaiyai.dto.SavingResponse;
 import com.bansaiyai.bansaiyai.entity.*;

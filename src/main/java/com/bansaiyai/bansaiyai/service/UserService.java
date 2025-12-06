@@ -3,7 +3,6 @@ package com.bansaiyai.bansaiyai.service;
 import com.bansaiyai.bansaiyai.entity.User;
 import com.bansaiyai.bansaiyai.repository.UserRepository;
 import com.bansaiyai.bansaiyai.repository.RoleRepository;
-import com.bansaiyai.bansaiyai.service.AuditService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;

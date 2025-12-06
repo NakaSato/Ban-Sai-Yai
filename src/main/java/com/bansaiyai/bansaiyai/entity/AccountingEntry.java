@@ -3,18 +3,19 @@ package com.bansaiyai.bansaiyai.entity;
 import jakarta.persistence.*;
 import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 
 /**
- * Entity representing an accounting entry in the double-entry bookkeeping system.
- * Each entry records either a debit or credit to an account for a specific fiscal period.
+ * Entity representing an accounting entry in the double-entry bookkeeping
+ * system.
+ * Each entry records either a debit or credit to an account for a specific
+ * fiscal period.
  */
 @Entity
 @Table(name = "accounting", indexes = {
-    @Index(name = "idx_accounting_fiscal_period", columnList = "fiscal_period"),
-    @Index(name = "idx_accounting_debit", columnList = "debit"),
-    @Index(name = "idx_accounting_credit", columnList = "credit"),
-    @Index(name = "idx_accounting_account_code", columnList = "account_code")
+        @Index(name = "idx_accounting_fiscal_period", columnList = "fiscal_period"),
+        @Index(name = "idx_accounting_debit", columnList = "debit"),
+        @Index(name = "idx_accounting_credit", columnList = "credit"),
+        @Index(name = "idx_accounting_account_code", columnList = "account_code")
 })
 public class AccountingEntry extends BaseEntity {
 
@@ -49,9 +50,9 @@ public class AccountingEntry extends BaseEntity {
     public AccountingEntry() {
     }
 
-    public AccountingEntry(String fiscalPeriod, String accountCode, String accountName, 
-                          BigDecimal debit, BigDecimal credit, LocalDate transactionDate, 
-                          String description) {
+    public AccountingEntry(String fiscalPeriod, String accountCode, String accountName,
+            BigDecimal debit, BigDecimal credit, LocalDate transactionDate,
+            String description) {
         this.fiscalPeriod = fiscalPeriod;
         this.accountCode = accountCode;
         this.accountName = accountName;

@@ -3,11 +3,8 @@ package com.bansaiyai.bansaiyai.controller;
 import com.bansaiyai.bansaiyai.dto.LoanApplicationRequest;
 import com.bansaiyai.bansaiyai.dto.LoanResponse;
 import com.bansaiyai.bansaiyai.dto.LoanApprovalRequest;
-import com.bansaiyai.bansaiyai.entity.Loan;
-import com.bansaiyai.bansaiyai.entity.User;
 import com.bansaiyai.bansaiyai.entity.enums.LoanStatus;
 import com.bansaiyai.bansaiyai.entity.enums.LoanType;
-import com.bansaiyai.bansaiyai.service.GuarantorAccessEvaluator;
 import com.bansaiyai.bansaiyai.service.LoanService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
@@ -16,10 +13,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
 
 @RestController
 @RequestMapping("/loans")
@@ -28,9 +22,6 @@ public class LoanController {
 
   @Autowired
   private LoanService loanService;
-
-  @Autowired
-  private GuarantorAccessEvaluator guarantorAccessEvaluator;
 
   @PostMapping("/apply")
   @PreAuthorize("hasAnyRole('ROLE_PRESIDENT', 'ROLE_SECRETARY', 'ROLE_OFFICER')")
