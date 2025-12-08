@@ -22,6 +22,7 @@ public class AuthService {
 
   private final UserRepository userRepository;
   private final PasswordEncoder passwordEncoder;
+  private final EmailService emailService;
 
   @Transactional
   public User registerUser(SignUpRequest signUpRequest) {
@@ -95,8 +96,15 @@ public class AuthService {
 
     userRepository.save(user);
 
-    // TODO: Send email with reset token
-    // emailService.sendPasswordResetEmail(user.getEmail(), resetToken);
+    // Send password reset email with token
+    try {
+      String resetUrl = "http://localhost:3000/auth/reset-password"; // Configure this externally
+      emailService.sendPasswordResetEmail(user.getEmail(), resetToken, resetUrl);
+      log.info("Password reset email sent to: {}", email);
+    } catch (Exception e) {
+      log.error("Failed to send password reset email to: {}", email, e);
+      // Don't fail the password reset flow if email fails
+    }
   }
 
   @Transactional

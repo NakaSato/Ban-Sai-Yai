@@ -13,6 +13,8 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -23,14 +25,19 @@ public class LoanController {
   @Autowired
   private LoanService loanService;
 
+  /**
+   * Get current authenticated username from security context
+   */
+  private String getCurrentUsername() {
+    Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+    return authentication != null ? authentication.getName() : "system";
+  }
+
   @PostMapping("/apply")
   @PreAuthorize("hasAnyRole('ROLE_PRESIDENT', 'ROLE_SECRETARY', 'ROLE_OFFICER')")
   public ResponseEntity<LoanResponse> applyForLoan(@RequestBody LoanApplicationRequest request) {
     try {
-      // Get current user from security context (simplified - in real app, get from
-      // JWT)
-      String createdBy = "current_user"; // TODO: Get from security context
-
+      String createdBy = getCurrentUsername();
       LoanResponse loanResponse = loanService.createLoanApplication(request, createdBy);
       return ResponseEntity.ok(loanResponse);
     } catch (Exception e) {
@@ -43,7 +50,7 @@ public class LoanController {
   public ResponseEntity<LoanResponse> approveLoan(@PathVariable Long loanId,
       @RequestBody LoanApprovalRequest approvalRequest) {
     try {
-      String approvedBy = "current_user"; // TODO: Get from security context
+      String approvedBy = getCurrentUsername();
       LoanResponse loanResponse = loanService.approveLoan(loanId, approvalRequest, approvedBy);
       return ResponseEntity.ok(loanResponse);
     } catch (Exception e) {
@@ -55,7 +62,7 @@ public class LoanController {
   @PreAuthorize("hasAnyRole('ROLE_PRESIDENT', 'ROLE_SECRETARY', 'ROLE_OFFICER')")
   public ResponseEntity<LoanResponse> disburseLoan(@PathVariable Long loanId) {
     try {
-      String disbursedBy = "current_user"; // TODO: Get from security context
+      String disbursedBy = getCurrentUsername();
       LoanResponse loanResponse = loanService.disburseLoan(loanId, disbursedBy);
       return ResponseEntity.ok(loanResponse);
     } catch (Exception e) {
@@ -66,9 +73,12 @@ public class LoanController {
   @PostMapping("/{loanId}/reject")
   @PreAuthorize("hasAnyRole('ROLE_PRESIDENT', 'ROLE_SECRETARY')")
   public ResponseEntity<LoanResponse> rejectLoan(@PathVariable Long loanId,
-      @RequestParam String rejectionReason) {
+      @RequestParam(value = "rejectionReason") String rejectionReason) {
     try {
-      String rejectedBy = "current_user"; // TODO: Get from security context
+      if (rejectionReason == null || rejectionReason.isBlank()) {
+        return ResponseEntity.badRequest().build();
+      }
+      String rejectedBy = getCurrentUsername();
       LoanResponse loanResponse = loanService.rejectLoan(loanId, rejectionReason, rejectedBy);
       return ResponseEntity.ok(loanResponse);
     } catch (Exception e) {
@@ -192,7 +202,7 @@ public class LoanController {
   public ResponseEntity<LoanResponse> updateLoan(@PathVariable Long loanId,
       @RequestBody LoanApplicationRequest request) {
     try {
-      String updatedBy = "current_user"; // TODO: Get from security context
+      String updatedBy = getCurrentUsername();
       LoanResponse loanResponse = loanService.updateLoan(loanId, request, updatedBy);
       return ResponseEntity.ok(loanResponse);
     } catch (Exception e) {
