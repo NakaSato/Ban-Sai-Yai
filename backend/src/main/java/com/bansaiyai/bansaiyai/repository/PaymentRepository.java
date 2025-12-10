@@ -269,5 +269,14 @@ public interface PaymentRepository extends JpaRepository<Payment, Long> {
         java.math.BigDecimal sumPaymentsByProcessedByAndDateRange(@Param("officer") String officer,
                         @Param("startDate") LocalDate startDate, @Param("endDate") LocalDate endDate);
 
+        /**
+         * Sum interest paid by a member in a specific year
+         */
+        @Query("SELECT COALESCE(SUM(p.interestAmount), 0) FROM Payment p " +
+                        "WHERE p.member.id = :memberId " +
+                        "AND YEAR(p.paymentDate) = :year " +
+                        "AND p.paymentStatus = 'COMPLETED'")
+        BigDecimal sumInterestByMemberAndYear(@Param("memberId") Long memberId, @Param("year") Integer year);
+
         List<Payment> findByApprovalStatus(ApprovalStatus approvalStatus);
 }

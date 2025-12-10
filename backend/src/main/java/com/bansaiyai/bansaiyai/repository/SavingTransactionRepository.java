@@ -16,4 +16,6 @@ public interface SavingTransactionRepository extends JpaRepository<SavingTransac
     List<SavingTransaction> findRecentTransactions(Pageable pageable);
 
     List<SavingTransaction> findByApprovalStatus(ApprovalStatus approvalStatus);
+
+    List<SavingTransaction> findBySavingAccountIdOrderByTransactionDateDesc(Long savingAccountId);
 }

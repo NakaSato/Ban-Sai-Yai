@@ -1,0 +1,138 @@
+=========================================
+Roles API Test Suite
+=========================================
+Base URL: http://localhost:9097/api
+
+Checking if server is running...
+Server not ready, waiting... (1/5)
+Server not ready, waiting... (2/5)
+Server not ready, waiting... (3/5)
+[0;32m✓ Server is running[0m
+
+=========================================
+Setting up test users...
+=========================================
+
+Logging in as admin...
+[0;32m✓ Admin login successful[0m
+
+Logging in as president...
+[0;32m✓ President login successful[0m
+
+Logging in as secretary...
+[0;32m✓ Secretary login successful[0m
+
+Logging in as officer...
+[0;32m✓ Officer login successful[0m
+
+Logging in as member...
+[0;32m✓ Member login successful[0m
+
+=========================================
+Running Tests...
+=========================================
+
+Test 1: Get All Roles (Admin)
+[0;32m✓ PASS[0m - Get all roles as admin (HTTP 200)
+Response: {"total":0,"roles":[]}
+
+Test 2: Get All Roles (President)
+[0;32m✓ PASS[0m - Get all roles as president (HTTP 200)
+Response: {"total":0,"roles":[]}
+
+Test 3: Get All Roles (Secretary)
+[0;32m✓ PASS[0m - Get all roles as secretary (HTTP 200)
+Response: {"total":0,"roles":[]}
+
+Test 4: Get All Roles (Officer - Should Fail)
+[0;32m✓ PASS[0m - Get all roles as officer (should fail) (HTTP 403)
+Response: {"timestamp":[2025,12,10,1,28,44,112748000],"status":403,"error":"Access Denied","message":"You do not have permission to access this resource","path":"/api/roles","validationErrors":null}
+
+Test 5: Get All Roles (Member - Should Fail)
+[0;32m✓ PASS[0m - Get all roles as member (should fail) (HTTP 403)
+Response: {"timestamp":[2025,12,10,1,28,44,134870000],"status":403,"error":"Access Denied","message":"You do not have permission to access this resource","path":"/api/roles","validationErrors":null}
+
+Test 6: Get All Roles (Unauthenticated - Should Fail)
+[0;32m✓ PASS[0m - Get all roles without token (should fail) (HTTP 403)
+Response: 
+
+Test 7: Get Role Hierarchy (Admin)
+[0;32m✓ PASS[0m - Get role hierarchy as admin (HTTP 200)
+Response: {"hierarchy":["ADMIN","PRESIDENT","SECRETARY","OFFICER","MEMBER"],"description":"Role hierarchy from highest to lowest privilege"}
+
+Test 8: Get Role Hierarchy (President)
+[0;32m✓ PASS[0m - Get role hierarchy as president (HTTP 200)
+Response: {"hierarchy":["ADMIN","PRESIDENT","SECRETARY","OFFICER","MEMBER"],"description":"Role hierarchy from highest to lowest privilege"}
+
+Test 9: Get Role Hierarchy (Secretary - Should Fail)
+[0;32m✓ PASS[0m - Get role hierarchy as secretary (should fail) (HTTP 403)
+Response: {"timestamp":[2025,12,10,1,28,44,225480000],"status":403,"error":"Access Denied","message":"You do not have permission to access this resource","path":"/api/roles/hierarchy","validationErrors":null}
+
+Test 10: Get Role Permissions (OFFICER)
+[0;32m✓ PASS[0m - Get OFFICER permissions (HTTP 200)
+Response: {"role":"OFFICER","permissions":["MEMBER_WRITE","SAVINGS_WRITE","LOAN_READ","LOAN_WRITE","PAYMENT_WRITE","PAYMENT_READ","SAVINGS_READ","MEMBER_READ"],"description":"Officer - Daily operations and member services","permissionCount":8}
+
+Test 11: Get Role Permissions (PRESIDENT)
+[0;32m✓ PASS[0m - Get PRESIDENT permissions (HTTP 200)
+Response: {"role":"PRESIDENT","permissions":["REPORT_WRITE","REPORT_READ","SAVINGS_WRITE","SAVINGS_DELETE","ADMIN_READ","PAYMENT_READ","PAYMENT_WRITE","LOAN_DELETE","MEMBER_DELETE","MEMBER_READ","SAVINGS_READ","MEMBER_WRITE","PAYMENT_DELETE","LOAN_APPROVE","LOAN_READ","LOAN_WRITE","ADMIN_WRITE"],"description":"President - Organization leadership with full operational access","permissionCount":17}
+
+Test 12: Get Role Permissions (SECRETARY)
+[0;32m✓ PASS[0m - Get SECRETARY permissions (HTTP 200)
+Response: {"role":"SECRETARY","permissions":["REPORT_WRITE","MEMBER_WRITE","REPORT_READ","SAVINGS_WRITE","LOAN_READ","LOAN_WRITE","PAYMENT_WRITE","PAYMENT_READ","SAVINGS_READ","MEMBER_READ"],"description":"Secretary - Record keeping and reporting responsibilities","permissionCount":10}
+
+Test 13: Get Role Permissions (MEMBER)
+[0;32m✓ PASS[0m - Get MEMBER permissions (HTTP 200)
+Response: {"role":"MEMBER","permissions":["MEMBER_READ_SELF","LOAN_READ_SELF","PAYMENT_READ_SELF","SAVINGS_READ_SELF"],"description":"Member - Basic access to own information","permissionCount":4}
+
+Test 14: Get All Permissions (Admin)
+[0;32m✓ PASS[0m - Get all permissions as admin (HTTP 200)
+Response: {"total":23,"permissions":["REPORT_WRITE","REPORT_READ","SAVINGS_WRITE","SAVINGS_DELETE","LOAN_READ_SELF","ADMIN_READ","PAYMENT_READ_SELF","SAVINGS_READ_SELF","PAYMENT_READ","PAYMENT_WRITE","USER_MANAGEMENT","LOAN_DELETE","SAVINGS_READ","MEMBER_DELETE","MEMBER_READ","MEMBER_WRITE","MEMBER_READ_SELF","PAYMENT_DELETE","LOAN_APPROVE","LOAN_READ","SYSTEM_CONFIG","LOAN_WRITE","ADMIN_WRITE"]}
+
+Test 15: Get All Permissions (President)
+[0;32m✓ PASS[0m - Get all permissions as president (HTTP 200)
+Response: {"total":23,"permissions":["REPORT_WRITE","REPORT_READ","SAVINGS_WRITE","SAVINGS_DELETE","LOAN_READ_SELF","ADMIN_READ","PAYMENT_READ_SELF","SAVINGS_READ_SELF","PAYMENT_READ","PAYMENT_WRITE","USER_MANAGEMENT","LOAN_DELETE","SAVINGS_READ","MEMBER_DELETE","MEMBER_READ","MEMBER_WRITE","MEMBER_READ_SELF","PAYMENT_DELETE","LOAN_APPROVE","LOAN_READ","SYSTEM_CONFIG","LOAN_WRITE","ADMIN_WRITE"]}
+
+Test 16: Get All Permissions (Secretary - Should Fail)
+[0;32m✓ PASS[0m - Get all permissions as secretary (should fail) (HTTP 403)
+Response: {"timestamp":[2025,12,10,1,28,44,384936000],"status":403,"error":"Access Denied","message":"You do not have permission to access this resource","path":"/api/roles/permissions","validationErrors":null}
+
+Test 17: Get Roles by Permission (VIEW_MEMBERS)
+[0;32m✓ PASS[0m - Get roles with VIEW_MEMBERS permission (HTTP 200)
+Response: {"roles":[],"count":0,"permission":"VIEW_MEMBERS"}
+
+Test 18: Check Can Manage Role (PRESIDENT can manage OFFICER)
+[0;32m✓ PASS[0m - Check PRESIDENT can manage OFFICER (HTTP 200)
+Response: {"canManage":true,"managerRole":"PRESIDENT","targetRole":"OFFICER"}
+
+Test 19: Check Can Manage Role (OFFICER cannot manage PRESIDENT)
+[0;32m✓ PASS[0m - Check OFFICER can manage PRESIDENT (HTTP 200)
+Response: {"canManage":false,"managerRole":"OFFICER","targetRole":"PRESIDENT"}
+
+Test 20: Validate Role Assignment (Admin assigning OFFICER)
+[0;32m✓ PASS[0m - Validate admin can assign OFFICER role (HTTP 200)
+Response: {"targetRole":"OFFICER","isValid":true,"currentRole":"ADMIN","message":"Role assignment is valid"}
+
+Test 21: Validate Role Assignment (Officer assigning PRESIDENT)
+[0;32m✓ PASS[0m - Validate officer can assign PRESIDENT role (HTTP 200)
+Response: {"targetRole":"PRESIDENT","isValid":false,"currentRole":"OFFICER","message":"Current role does not have permission to assign this role"}
+
+Test 22: Get Role Statistics (Admin)
+[0;32m✓ PASS[0m - Get role statistics as admin (HTTP 200)
+Response: {"totalRoles":5,"permissionCounts":{"PRESIDENT":17,"OFFICER":8,"ADMIN":19,"SECRETARY":10,"MEMBER":4},"roleNames":["ADMIN","PRESIDENT","SECRETARY","OFFICER","MEMBER"],"totalPermissions":23}
+
+Test 23: Get Role Statistics (President)
+[0;32m✓ PASS[0m - Get role statistics as president (HTTP 200)
+Response: {"totalRoles":5,"permissionCounts":{"PRESIDENT":17,"OFFICER":8,"ADMIN":19,"SECRETARY":10,"MEMBER":4},"roleNames":["ADMIN","PRESIDENT","SECRETARY","OFFICER","MEMBER"],"totalPermissions":23}
+
+Test 24: Get Role Statistics (Secretary - Should Fail)
+[0;32m✓ PASS[0m - Get role statistics as secretary (should fail) (HTTP 403)
+Response: {"timestamp":[2025,12,10,1,28,44,583501000],"status":403,"error":"Access Denied","message":"You do not have permission to access this resource","path":"/api/roles/statistics","validationErrors":null}
+
+=========================================
+Test Summary
+=========================================
+Total Tests: 24
+[0;32mPassed: 24[0m
+[0;31mFailed: 0[0m
+
+[0;32m✓ All tests passed![0m

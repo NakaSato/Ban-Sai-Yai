@@ -104,7 +104,8 @@ public enum TransactionType {
   /**
    * Direct debit instruction
    */
-  DIRECT_DEBIT("Direct Debit", "Authorized automatic debit");
+  DIRECT_DEBIT("Direct Debit", "Authorized automatic debit"),
+  DIVIDEND_PAYOUT("Dividend Payout", "Annual dividend distribution");
 
   private final String displayName;
   private final String description;

@@ -8,7 +8,8 @@ import java.time.LocalDateTime;
 
 /**
  * Entity for audit logging of security-relevant actions.
- * Stores comprehensive information about user actions for compliance and investigation.
+ * Stores comprehensive information about user actions for compliance and
+ * investigation.
  */
 @Entity
 @Table(name = "system_audit_log", indexes = {
@@ -54,4 +55,41 @@ public class AuditLog {
   @Column(nullable = false)
   @CreationTimestamp
   private LocalDateTime timestamp;
+
+  // Explicit getters to fix Lombok compilation issues
+  public Long getLogId() {
+    return logId;
+  }
+
+  public User getUser() {
+    return user;
+  }
+
+  public String getAction() {
+    return action;
+  }
+
+  public String getEntityType() {
+    return entityType;
+  }
+
+  public Long getEntityId() {
+    return entityId;
+  }
+
+  public String getIpAddress() {
+    return ipAddress;
+  }
+
+  public String getOldValues() {
+    return oldValues;
+  }
+
+  public String getNewValues() {
+    return newValues;
+  }
+
+  public LocalDateTime getTimestamp() {
+    return timestamp;
+  }
 }

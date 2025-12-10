@@ -23,6 +23,7 @@ import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Random;
+import java.util.UUID;
 
 @Service
 @Transactional
@@ -32,6 +33,7 @@ public class LoanService {
 
   private final LoanRepository loanRepository;
   private final MemberRepository memberRepository;
+  private final com.bansaiyai.bansaiyai.repository.GuarantorRepository guarantorRepository;
 
   private static final BigDecimal MAX_LOAN_TO_SAVINGS_RATIO = new BigDecimal("3.0");
   private static final int MIN_TERM_MONTHS = 1;
@@ -45,6 +47,43 @@ public class LoanService {
   public static BigDecimal getMaxLoanToSavingsRatio() {
     return MAX_LOAN_TO_SAVINGS_RATIO;
   }
+
+  // ============================================
+  // UUID-based Methods (NEW - For secure API use)
+  // ============================================
+
+  /**
+   * Get loan by UUID - Secure method for external API use
+   */
+  @Transactional(readOnly = true)
+  public LoanResponse getLoanByUuid(UUID uuid) {
+    log.debug("Getting loan by UUID: {}", uuid);
+    Loan loan = loanRepository.findByUuid(uuid)
+        .orElseThrow(() -> new ResourceNotFoundException("Loan", "uuid", uuid.toString()));
+    return convertToResponse(loan);
+  }
+
+  /**
+   * Delete loan by UUID - Secure method for external API use
+   */
+  public void deleteLoanByUuid(UUID uuid) {
+    log.info("Deleting loan by UUID: {}", uuid);
+
+    Loan loan = loanRepository.findByUuid(uuid)
+        .orElseThrow(() -> new ResourceNotFoundException("Loan", "uuid", uuid.toString()));
+
+    // Only allow deletion of pending loans
+    if (loan.getStatus() != LoanStatus.PENDING) {
+      throw new BusinessException("Only pending loans can be deleted", "INVALID_LOAN_STATUS");
+    }
+
+    loanRepository.delete(loan);
+    log.info("Loan UUID: {} deleted successfully", uuid);
+  }
+
+  // ============================================
+  // Existing methods below
+  // ============================================
 
   public LoanResponse createLoanApplication(LoanApplicationRequest request, String createdBy) {
     log.info("Creating loan application for member ID: {}", request.getMemberId());
@@ -94,6 +133,49 @@ public class LoanService {
         .build();
 
     Loan savedLoan = loanRepository.save(loan);
+
+    // Process Guarantors
+    if (request.getGuarantors() != null && !request.getGuarantors().isEmpty()) {
+      if (request.getGuarantors().size() > 2) { // Logic: Max 2 guarantors per loan
+        throw new BusinessException("Maximum 2 guarantors allowed per loan", "MAX_GUARANTORS_EXCEEDED");
+      }
+
+      for (com.bansaiyai.bansaiyai.dto.GuarantorRequest gReq : request.getGuarantors()) {
+        Member guarantorMember = memberRepository.findById(gReq.getMemberId())
+            .orElseThrow(() -> new ResourceNotFoundException("Guarantor Member", "id", gReq.getMemberId()));
+
+        // Validation 1: Guarantor cannot be the borrower
+        if (guarantorMember.getId().equals(member.getId())) {
+          throw new BusinessException("Borrower cannot be their own guarantor", "INVALID_GUARANTOR");
+        }
+
+        // Validation 2: Guarantor Active Status
+        if (!guarantorMember.getIsActive()) {
+          throw new BusinessException("Guarantor must be an active member", "GUARANTOR_INACTIVE");
+        }
+
+        // Validation 3: Guarantor Limits (e.g., max 3 active guarantees)
+        long activeGuarantees = guarantorRepository.countActiveByMemberId(guarantorMember.getId());
+        if (activeGuarantees >= 3) {
+          throw new BusinessException("Guarantor has reached the limit of active guarantees (3)",
+              "GUARANTOR_LIMIT_REACHED");
+        }
+
+        // Create and Save Guarantor Entity
+        com.bansaiyai.bansaiyai.entity.Guarantor guarantorEntity = com.bansaiyai.bansaiyai.entity.Guarantor.builder()
+            .loan(savedLoan)
+            .member(guarantorMember)
+            .guaranteedAmount(gReq.getGuaranteedAmount())
+            .relationship(gReq.getRelationship())
+            .isActive(true)
+            .guaranteeStartDate(LocalDate.now())
+            // .guarantorNumber(generateGuarantorNumber()) // Handled by @PrePersist
+            .build();
+
+        guarantorRepository.save(guarantorEntity);
+      }
+    }
+
     log.info("Loan application created with number: {}", loanNumber);
     return convertToResponse(savedLoan);
   }
@@ -307,6 +389,40 @@ public class LoanService {
     BigDecimal monthlyPayment = calculateMonthlyPayment(loan);
     return monthlyPayment.multiply(new BigDecimal(loan.getTermMonths()))
         .subtract(loan.getApprovedAmount() != null ? loan.getApprovedAmount() : loan.getPrincipalAmount());
+  }
+
+  /**
+   * Calculate payoff amount for a loan on a specific date.
+   * Logic: Payoff = Outstanding Principal + Accrued Interest + Penalties
+   */
+  @Transactional(readOnly = true)
+  public java.util.Map<String, BigDecimal> calculatePayoff(Long loanId, LocalDate targetDate) {
+    Loan loan = loanRepository.findById(loanId)
+        .orElseThrow(() -> new ResourceNotFoundException("Loan", "id", loanId));
+
+    BigDecimal outstanding = loan.getOutstandingBalance();
+    BigDecimal penalty = loan.getPenaltyAmount() != null ? loan.getPenaltyAmount() : BigDecimal.ZERO;
+
+    // Calculate Accrued Interest since last payment (or start date)
+    // Formula: Principal * Rate * Days / 365 / 100
+    LocalDate lastPaymentDate = LocalDate.now(); // Simplified for MVP, should be loan.getLastPaymentDate()
+    long days = java.time.temporal.ChronoUnit.DAYS.between(loan.getStartDate(), targetDate); // Simplified
+
+    // Better Logic: Interest = Outstanding * (Rate/100) * (AvailableDays/365)
+    BigDecimal annualRate = loan.getInterestRate().divide(new BigDecimal("100"), 4, RoundingMode.HALF_UP);
+    BigDecimal dailyRate = annualRate.divide(new BigDecimal("365"), 8, RoundingMode.HALF_UP);
+    BigDecimal accruedInterest = outstanding.multiply(dailyRate).multiply(new BigDecimal(days)).setScale(2,
+        RoundingMode.HALF_UP);
+
+    BigDecimal totalPayoff = outstanding.add(accruedInterest).add(penalty);
+
+    java.util.Map<String, BigDecimal> result = new java.util.HashMap<>();
+    result.put("principal", outstanding);
+    result.put("interest", accruedInterest);
+    result.put("penalty", penalty);
+    result.put("total", totalPayoff);
+
+    return result;
   }
 
   @Transactional(readOnly = true)

@@ -13,6 +13,7 @@ import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.UUID;
 
 /**
  * Loan entity representing member loan applications and contracts.
@@ -29,10 +30,18 @@ import java.util.List;
     @Index(name = "idx_loan_number", columnList = "loanNumber"),
     @Index(name = "idx_member_id", columnList = "memberId"),
     @Index(name = "idx_status", columnList = "status"),
-    @Index(name = "idx_start_date", columnList = "startDate")
+    @Index(name = "idx_start_date", columnList = "startDate"),
+    @Index(name = "idx_loan_uuid", columnList = "uuid")
 })
 @EntityListeners(AuditingEntityListener.class)
 public class Loan extends BaseEntity {
+
+  /**
+   * UUID for external API use - prevents ID enumeration attacks
+   * This is the primary identifier exposed in public APIs
+   */
+  @Column(name = "uuid", nullable = false, unique = true, columnDefinition = "BINARY(16)")
+  private UUID uuid;
 
   @Column(name = "loan_number", unique = true, nullable = false, length = 50)
   @NotBlank(message = "Loan number is required")
@@ -128,6 +137,12 @@ public class Loan extends BaseEntity {
 
   @Column(name = "disbursement_reference", length = 100)
   private String disbursementReference;
+
+  @Column(name = "contract_document_path")
+  private String contractDocumentPath;
+
+  @Column(name = "approval_document_path")
+  private String approvalDocumentPath;
 
   // Relationships
   @OneToMany(mappedBy = "loan", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
@@ -250,6 +265,10 @@ public class Loan extends BaseEntity {
 
   @PrePersist
   protected void onCreate() {
+    // Auto-generate UUID for security
+    if (uuid == null) {
+      uuid = UUID.randomUUID();
+    }
     if (loanNumber == null || loanNumber.trim().isEmpty()) {
       loanNumber = generateLoanNumber();
     }
@@ -495,6 +514,7 @@ public class Loan extends BaseEntity {
   }
 
   public static class LoanBuilder {
+    private UUID uuid;
     private String loanNumber;
     private Member member;
     private LoanType loanType;
@@ -520,8 +540,25 @@ public class Loan extends BaseEntity {
     private java.time.LocalDate approvedDate;
     private String disbursedBy;
     private String disbursementReference;
+    private String contractDocumentPath;
+    private String approvalDocumentPath;
     private String createdBy;
     private String updatedBy;
+
+    public LoanBuilder contractDocumentPath(String contractDocumentPath) {
+      this.contractDocumentPath = contractDocumentPath;
+      return this;
+    }
+
+    public LoanBuilder approvalDocumentPath(String approvalDocumentPath) {
+      this.approvalDocumentPath = approvalDocumentPath;
+      return this;
+    }
+
+    public LoanBuilder uuid(UUID uuid) {
+      this.uuid = uuid;
+      return this;
+    }
 
     public LoanBuilder loanNumber(String loanNumber) {
       this.loanNumber = loanNumber;
@@ -670,6 +707,7 @@ public class Loan extends BaseEntity {
 
     public Loan build() {
       Loan loan = new Loan();
+      loan.uuid = this.uuid;
       loan.loanNumber = this.loanNumber;
       loan.member = this.member;
       loan.loanType = this.loanType;
@@ -695,6 +733,8 @@ public class Loan extends BaseEntity {
       loan.approvedDate = this.approvedDate;
       loan.disbursedBy = this.disbursedBy;
       loan.disbursementReference = this.disbursementReference;
+      loan.contractDocumentPath = this.contractDocumentPath;
+      loan.approvalDocumentPath = this.approvalDocumentPath;
       loan.setCreatedBy(this.createdBy);
       loan.setUpdatedBy(this.updatedBy);
       return loan;

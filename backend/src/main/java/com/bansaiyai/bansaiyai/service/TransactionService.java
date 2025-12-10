@@ -787,4 +787,77 @@ public class TransactionService {
                                         "Error rejecting transaction: " + e.getMessage());
                 }
         }
+
+        /**
+         * Process a dividend payout transaction
+         */
+        @Transactional
+        public TransactionResponse processDividendPayout(Long memberId, BigDecimal amount, Integer year, User creator) {
+                try {
+                        // Validate member exists
+                        Member member = memberRepository.findById(memberId)
+                                        .orElseThrow(() -> new RuntimeException("Member not found"));
+
+                        // Get or create member's savings account
+                        List<SavingAccount> accounts = savingRepository.findByMemberIdAndIsActive(memberId, true);
+                        SavingAccount savingAccount;
+                        if (accounts.isEmpty()) {
+                                // Should not happen for active members usually, but fall back to create
+                                savingAccount = SavingAccount.builder()
+                                                .member(member)
+                                                .accountType(com.bansaiyai.bansaiyai.entity.enums.AccountType.SAVINGS)
+                                                .accountName(member.getName() + " - Savings")
+                                                .balance(BigDecimal.ZERO)
+                                                .availableBalance(BigDecimal.ZERO)
+                                                .interestRate(new BigDecimal("2.5"))
+                                                .openingDate(LocalDate.now())
+                                                .isActive(true)
+                                                .build();
+                                savingAccount = savingRepository.save(savingAccount);
+                        } else {
+                                savingAccount = accounts.get(0);
+                        }
+
+                        // Create transaction
+                        SavingTransaction transaction = new SavingTransaction();
+                        transaction.setSavingAccount(savingAccount);
+                        transaction.setTransactionType(TransactionType.DIVIDEND_PAYOUT);
+                        transaction.setAmount(amount);
+                        transaction.setDescription("Annual Dividend Payout for Year " + year);
+                        transaction.setTransactionDate(LocalDate.now());
+                        transaction.setTransactionNumber(generateTransactionNumber());
+                        transaction.setIsReversed(false);
+                        transaction.setCreatorUser(creator);
+                        transaction.setApprovalStatus(ApprovalStatus.APPROVED); // Auto-approved as it comes from
+                                                                                // System/President
+
+                        // Update account balance
+                        BigDecimal oldBalance = savingAccount.getBalance();
+                        BigDecimal newBalance = oldBalance.add(amount);
+                        transaction.setBalanceBefore(oldBalance);
+                        transaction.setBalanceAfter(newBalance);
+                        savingAccount.setBalance(newBalance);
+                        savingAccount.setAvailableBalance(newBalance);
+
+                        // Save transaction and account
+                        transaction = savingTransactionRepository.save(transaction);
+                        savingRepository.save(savingAccount);
+
+                        auditService.logAction(creator, "DIVIDEND_PAYOUT", "SavingTransaction", transaction.getId(),
+                                        null, null);
+
+                        return new TransactionResponse(
+                                        transaction.getId(),
+                                        transaction.getTransactionNumber(),
+                                        "DIVIDEND_PAYOUT",
+                                        amount,
+                                        LocalDateTime.now(),
+                                        "SUCCESS",
+                                        "Dividend processed successfully");
+
+                } catch (Exception e) {
+                        log.error("Error processing dividend: {}", e.getMessage(), e);
+                        throw new RuntimeException("Error processing dividend: " + e.getMessage());
+                }
+        }
 }

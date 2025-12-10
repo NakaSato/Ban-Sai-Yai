@@ -17,8 +17,10 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.UUID;
+
 @RestController
-@RequestMapping("/loans")
+@RequestMapping("/api/loans")
 @CrossOrigin(origins = "*", maxAge = 3600)
 public class LoanController {
 
@@ -46,7 +48,7 @@ public class LoanController {
   }
 
   @PostMapping("/{loanId}/approve")
-  @PreAuthorize("hasAnyRole('ROLE_PRESIDENT', 'ROLE_SECRETARY')")
+  @PreAuthorize("hasRole('ROLE_PRESIDENT')")
   public ResponseEntity<LoanResponse> approveLoan(@PathVariable Long loanId,
       @RequestBody LoanApprovalRequest approvalRequest) {
     try {
@@ -71,7 +73,7 @@ public class LoanController {
   }
 
   @PostMapping("/{loanId}/reject")
-  @PreAuthorize("hasAnyRole('ROLE_PRESIDENT', 'ROLE_SECRETARY')")
+  @PreAuthorize("hasRole('ROLE_PRESIDENT')")
   public ResponseEntity<LoanResponse> rejectLoan(@PathVariable Long loanId,
       @RequestParam(value = "rejectionReason") String rejectionReason) {
     try {
@@ -103,11 +105,14 @@ public class LoanController {
     }
   }
 
-  @GetMapping("/{loanId}")
-  @PreAuthorize("hasAnyRole('ROLE_PRESIDENT', 'ROLE_SECRETARY', 'ROLE_OFFICER', 'ROLE_MEMBER')")
-  public ResponseEntity<LoanResponse> getLoanById(@PathVariable Long loanId) {
+  /**
+   * Get loan by UUID (SECURE - prevents ID enumeration)
+   */
+  @GetMapping("/{uuid}")
+  @PreAuthorize("hasAnyRole('ADMIN', 'PRESIDENT', 'SECRETARY', 'OFFICER', 'MEMBER')")
+  public ResponseEntity<LoanResponse> getLoanById(@PathVariable UUID uuid) {
     try {
-      LoanResponse loan = loanService.getLoanById(loanId);
+      LoanResponse loan = loanService.getLoanByUuid(uuid);
       return ResponseEntity.ok(loan);
     } catch (Exception e) {
       return ResponseEntity.badRequest().build();
@@ -242,6 +247,15 @@ public class LoanController {
     } catch (Exception e) {
       return ResponseEntity.badRequest().build();
     }
+  }
+
+  @GetMapping("/{loanId}/payoff")
+  @PreAuthorize("hasAnyRole('OFFICER', 'SECRETARY', 'PRESIDENT') or @loanSecurity.isLoanOwner(authentication, #loanId)")
+  public ResponseEntity<java.util.Map<String, java.math.BigDecimal>> getPayoffQuote(
+      @PathVariable Long loanId,
+      @RequestParam(required = false) java.time.LocalDate date) {
+    java.time.LocalDate targetDate = date != null ? date : java.time.LocalDate.now();
+    return ResponseEntity.ok(loanService.calculatePayoff(loanId, targetDate));
   }
 
   @GetMapping("/pending")

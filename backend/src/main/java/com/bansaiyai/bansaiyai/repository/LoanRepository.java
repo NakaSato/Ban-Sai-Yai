@@ -13,9 +13,33 @@ import org.springframework.stereotype.Repository;
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 @Repository
 public interface LoanRepository extends JpaRepository<Loan, Long> {
+
+  // ============================================
+  // UUID-based Query Methods (NEW - For secure API use)
+  // ============================================
+
+  /**
+   * Find loan by UUID - Primary method for external API use
+   */
+  Optional<Loan> findByUuid(UUID uuid);
+
+  /**
+   * Check if loan exists by UUID
+   */
+  boolean existsByUuid(UUID uuid);
+
+  /**
+   * Delete loan by UUID
+   */
+  void deleteByUuid(UUID uuid);
+
+  // ============================================
+  // Legacy Long-based Methods (Keep for internal use)
+  // ============================================
 
   Optional<Loan> findByLoanNumber(String loanNumber);
 

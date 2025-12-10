@@ -11,6 +11,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 /**
  * Service for managing member operations.
@@ -29,6 +30,36 @@ public class MemberService {
     return memberRepository.findAll(pageable);
   }
 
+  // ============================================
+  // UUID-based Methods (NEW - For secure API use)
+  // ============================================
+
+  /**
+   * Get member by UUID - Secure method for external API use
+   * 
+   * @param uuid Member's UUID
+   * @return Optional containing member if found
+   */
+  public Optional<Member> getMemberByUuid(UUID uuid) {
+    log.debug("Fetching member by UUID: {}", uuid);
+    return memberRepository.findByUuid(uuid);
+  }
+
+  /**
+   * Delete member by UUID - Secure method for external API use
+   * 
+   * @param uuid Member's UUID
+   */
+  @Transactional
+  public void deleteMemberByUuid(UUID uuid) {
+    log.info("Deleting member with UUID: {}", uuid);
+    memberRepository.deleteByUuid(uuid);
+  }
+
+  // ============================================
+  // Legacy Long-based Methods (Keep for internal use)
+  // ============================================
+
   public Optional<Member> getMemberById(Long id) {
     log.debug("Fetching member by id: {}", id);
     return memberRepository.findById(id);
@@ -37,6 +68,18 @@ public class MemberService {
   @Transactional
   public Member saveMember(Member member) {
     log.info("Saving member: {}", member.getMemberId());
+
+    // Check for Duplicate ID Card (if new member or ID changed)
+    if (member.getId() == null && memberRepository.existsByIdCard(member.getIdCard())) {
+      throw new com.bansaiyai.bansaiyai.exception.BusinessException("ID Card already registered", "DUPLICATE_ID_CARD");
+    }
+
+    // Check Age (Example rule: Minimum 18 years)
+    if (member.getAge() < 18) {
+      throw new com.bansaiyai.bansaiyai.exception.BusinessException("Member must be at least 18 years old",
+          "INVALID_AGE");
+    }
+
     return memberRepository.save(member);
   }
 

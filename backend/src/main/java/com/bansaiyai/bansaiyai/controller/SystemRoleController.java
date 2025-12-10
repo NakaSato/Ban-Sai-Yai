@@ -22,13 +22,23 @@ import java.util.stream.Collectors;
  * Controller for role management operations
  */
 @RestController
-@RequestMapping("/api/roles")
-@RequiredArgsConstructor
+@RequestMapping({ "/api/roles", "/roles" })
 @Slf4j
-public class RoleController {
+public class SystemRoleController {
+
+  @jakarta.annotation.PostConstruct
+  public void init() {
+    System.out.println("SystemRoleController INITIALIZED!!!!!!");
+  }
 
   private final RoleService roleService;
   private final RolePermissionService rolePermissionService;
+
+  public SystemRoleController(RoleService roleService, RolePermissionService rolePermissionService) {
+    this.roleService = roleService;
+    this.rolePermissionService = rolePermissionService;
+    System.out.println("SystemRoleController Constructor Called with: " + roleService + ", " + rolePermissionService);
+  }
 
   /**
    * Get all available roles in system
@@ -65,9 +75,6 @@ public class RoleController {
     return ResponseEntity.ok(response);
   }
 
-  /**
-   * Get role hierarchy
-   */
   @GetMapping("/hierarchy")
   @PreAuthorize("hasAnyRole('ADMIN', 'PRESIDENT')")
   public ResponseEntity<Map<String, Object>> getRoleHierarchy() {
@@ -179,7 +186,7 @@ public class RoleController {
   /**
    * Get permissions for a specific role by ID
    */
-  @GetMapping("/{id}/permissions")
+  @GetMapping("/by-id/{id}/permissions")
   @PreAuthorize("hasAnyRole('ADMIN', 'PRESIDENT', 'SECRETARY')")
   public ResponseEntity<Map<String, Object>> getRolePermissionsById(@PathVariable Integer id) {
     try {

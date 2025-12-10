@@ -36,4 +36,6 @@ public class LoanApplicationRequest {
   @NotBlank(message = "Loan purpose is required")
   @Size(min = 10, max = 500, message = "Purpose must be between 10 and 500 characters")
   private String purpose;
+
+  private java.util.List<GuarantorRequest> guarantors;
 }

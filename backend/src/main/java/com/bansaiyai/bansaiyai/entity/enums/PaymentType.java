@@ -22,7 +22,8 @@ public enum PaymentType {
   TRANSFER_OUT("Transfer Out", false),
   ADJUSTMENT("Account Adjustment", false),
   REVERSAL("Payment Reversal", false),
-  WRITE_OFF("Write Off", true);
+  WRITE_OFF("Write Off", true),
+  DIVIDEND_PAYOUT("Dividend Payout", false);
 
   private final String displayName;
   private final boolean isDebit;

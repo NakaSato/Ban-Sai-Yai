@@ -10,6 +10,7 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.Period;
 import java.util.List;
+import java.util.UUID;
 
 import com.bansaiyai.bansaiyai.entity.enums.LoanStatus;
 
@@ -28,10 +29,18 @@ import com.bansaiyai.bansaiyai.entity.enums.LoanStatus;
 @Table(name = "member", indexes = {
     @Index(name = "idx_member_id", columnList = "memberId"),
     @Index(name = "idx_id_card", columnList = "idCard"),
-    @Index(name = "idx_registration_date", columnList = "registrationDate")
+    @Index(name = "idx_registration_date", columnList = "registrationDate"),
+    @Index(name = "idx_member_uuid", columnList = "uuid")
 })
 @EntityListeners(AuditingEntityListener.class)
 public class Member extends BaseEntity {
+
+  /**
+   * UUID for external API use - prevents ID enumeration attacks
+   * This is the primary identifier exposed in public APIs
+   */
+  @Column(name = "uuid", nullable = false, unique = true, columnDefinition = "BINARY(16)")
+  private UUID uuid;
 
   @Column(name = "member_id", unique = true, nullable = false, length = 20)
   @NotBlank(message = "Member ID is required")
@@ -200,6 +209,10 @@ public class Member extends BaseEntity {
 
   @PrePersist
   protected void onCreate() {
+    // Auto-generate UUID for security
+    if (uuid == null) {
+      uuid = UUID.randomUUID();
+    }
     if (memberId == null || memberId.trim().isEmpty()) {
       memberId = generateMemberId();
     }
@@ -238,12 +251,29 @@ public class Member extends BaseEntity {
     this.name = name;
   }
 
+  public String getEmail() {
+    return email;
+  }
+
+  public void setEmail(String email) {
+    this.email = email;
+  }
+
+  public String getMemberId() {
+    return memberId;
+  }
+
+  public void setMemberId(String memberId) {
+    this.memberId = memberId;
+  }
+
   // Manual builder for Lombok compatibility
   public static MemberBuilder builder() {
     return new MemberBuilder();
   }
 
   public static class MemberBuilder {
+    private UUID uuid;
     private String memberId;
     private String name;
     private String idCard;
@@ -264,6 +294,11 @@ public class Member extends BaseEntity {
     private java.util.List<Loan> loans;
     private SavingAccount savingAccount;
     private java.util.List<Payment> payments;
+
+    public MemberBuilder uuid(UUID uuid) {
+      this.uuid = uuid;
+      return this;
+    }
 
     public MemberBuilder memberId(String memberId) {
       this.memberId = memberId;
@@ -377,6 +412,7 @@ public class Member extends BaseEntity {
 
     public Member build() {
       Member member = new Member();
+      member.uuid = this.uuid;
       member.memberId = this.memberId;
       member.name = this.name;
       member.idCard = this.idCard;

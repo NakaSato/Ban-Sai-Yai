@@ -123,4 +123,6 @@ public interface SavingRepository extends JpaRepository<SavingAccount, Long> {
 
         @Query("SELECT COALESCE(SUM(sa.balance), 0) FROM SavingAccount sa WHERE sa.isActive = true")
         java.math.BigDecimal sumTotalSavings();
+
+        Optional<SavingAccount> findFirstByMemberIdAndIsActiveTrue(Long memberId);
 }

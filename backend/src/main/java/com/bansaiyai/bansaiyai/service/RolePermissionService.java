@@ -135,6 +135,8 @@ public class RolePermissionService {
      * 
      * @return a map of role names to their permission slugs
      */
+
+    @Transactional(readOnly = true)
     public Map<String, Set<String>> getRolePermissionMatrix() {
         log.debug("Building role-permission matrix");
 

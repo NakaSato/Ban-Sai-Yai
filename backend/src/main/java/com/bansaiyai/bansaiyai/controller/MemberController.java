@@ -14,6 +14,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/members")
@@ -44,19 +45,28 @@ public class MemberController {
     return ResponseEntity.ok(members);
   }
 
-  @GetMapping("/{id}")
-  @PreAuthorize("hasAnyRole('PRESIDENT', 'SECRETARY', 'OFFICER', 'MEMBER')")
-  public ResponseEntity<Member> getMemberById(@PathVariable Long id, Authentication authentication) {
+  /**
+   * Get member by UUID (SECURE - prevents ID enumeration)
+   * 
+   * @param uuid           Member's UUID
+   * @param authentication Current user authentication
+   * @return Member details if authorized
+   */
+  @GetMapping("/{uuid}")
+  @PreAuthorize("hasAnyRole('ADMIN', 'PRESIDENT', 'SECRETARY', 'OFFICER', 'MEMBER')")
+  public ResponseEntity<Member> getMemberById(@PathVariable UUID uuid, Authentication authentication) {
     // Get current user
     User currentUser = getCurrentUser(authentication);
 
-    // Check access using evaluator
-    if (!memberAccessEvaluator.canViewMember(currentUser, id)) {
-      return ResponseEntity.status(403).build();
-    }
-
-    return memberService.getMemberById(id)
-        .map(member -> ResponseEntity.ok(member))
+    // Find member by UUID
+    return memberService.getMemberByUuid(uuid)
+        .map(member -> {
+          // Check access using evaluator
+          if (!memberAccessEvaluator.canViewMember(currentUser, member.getId())) {
+            return ResponseEntity.status(403).<Member>build();
+          }
+          return ResponseEntity.ok(member);
+        })
         .orElse(ResponseEntity.notFound().build());
   }
 
@@ -71,29 +81,43 @@ public class MemberController {
   }
 
   @PostMapping
-  @PreAuthorize("hasAnyRole('PRESIDENT', 'SECRETARY')")
+  @PreAuthorize("hasAnyRole('PRESIDENT', 'SECRETARY', 'OFFICER')")
   public ResponseEntity<Member> createMember(@RequestBody Member member) {
     Member savedMember = memberService.saveMember(member);
     return ResponseEntity.ok(savedMember);
   }
 
-  @PutMapping("/{id}")
-  @PreAuthorize("hasAnyRole('PRESIDENT', 'SECRETARY')")
-  public ResponseEntity<Member> updateMember(@PathVariable Long id, @RequestBody Member member) {
-    return memberService.getMemberById(id)
+  /**
+   * Update member by UUID (SECURE)
+   * 
+   * @param uuid   Member's UUID
+   * @param member Updated member data
+   * @return Updated member
+   */
+  @PutMapping("/{uuid}")
+  @PreAuthorize("hasAnyRole('ADMIN', 'PRESIDENT', 'SECRETARY')")
+  public ResponseEntity<Member> updateMember(@PathVariable UUID uuid, @RequestBody Member member) {
+    return memberService.getMemberByUuid(uuid)
         .map(existingMember -> {
-          member.setId(id);
+          member.setId(existingMember.getId());
+          member.setUuid(uuid); // Preserve UUID
           Member updatedMember = memberService.saveMember(member);
           return ResponseEntity.ok(updatedMember);
         })
         .orElse(ResponseEntity.notFound().build());
   }
 
-  @DeleteMapping("/{id}")
-  @PreAuthorize("hasRole('PRESIDENT')")
-  public ResponseEntity<Void> deleteMember(@PathVariable Long id) {
-    memberService.deleteMember(id);
-    return ResponseEntity.ok().build();
+  /**
+   * Delete member by UUID (SECURE)
+   * 
+   * @param uuid Member's UUID
+   * @return Success response
+   */
+  @DeleteMapping("/{uuid}")
+  @PreAuthorize("hasAnyRole('ADMIN', 'PRESIDENT')")
+  public ResponseEntity<Void> deleteMember(@PathVariable UUID uuid) {
+    memberService.deleteMemberByUuid(uuid);
+    return ResponseEntity.noContent().build();
   }
 
   @GetMapping("/search")
