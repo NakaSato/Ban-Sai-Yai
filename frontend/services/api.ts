@@ -118,7 +118,7 @@ export const api = {
         savingsBalance: m.savingAccount ? m.savingAccount.balance : 0,
         joinedDate: m.registrationDate,
         // Map status appropriately
-        status: m.isActive ? "ACTIVE" : "INACTIVE",
+        status: (m.isActive ? "ACTIVE" : "INACTIVE") as "ACTIVE" | "INACTIVE",
         isFrozen: false,
         monthlyIncome: m.monthlyIncome,
         occupation: m.occupation,
@@ -138,7 +138,7 @@ export const api = {
         shareBalance: m.shareCapital,
         savingsBalance: m.savingAccount ? m.savingAccount.balance : 0,
         joinedDate: m.registrationDate,
-        status: m.isActive ? "ACTIVE" : "INACTIVE",
+        status: (m.isActive ? "ACTIVE" : "INACTIVE") as "ACTIVE" | "INACTIVE",
         isFrozen: false, // Not directly mapped yet
         monthlyIncome: m.monthlyIncome,
         occupation: m.occupation,
@@ -157,7 +157,7 @@ export const api = {
         shareBalance: m.shareCapital,
         savingsBalance: m.savingAccount ? m.savingAccount.balance : 0,
         joinedDate: m.registrationDate,
-        status: m.isActive ? "ACTIVE" : "INACTIVE",
+        status: (m.isActive ? "ACTIVE" : "INACTIVE") as "ACTIVE" | "INACTIVE",
         isFrozen: false,
         monthlyIncome: m.monthlyIncome,
         occupation: m.occupation,
@@ -191,7 +191,7 @@ export const api = {
         shareBalance: m.shareCapital,
         savingsBalance: 0,
         joinedDate: m.registrationDate,
-        status: m.isActive ? "ACTIVE" : "INACTIVE",
+        status: (m.isActive ? "ACTIVE" : "INACTIVE") as "ACTIVE" | "INACTIVE",
       };
     },
     update: async (id: string, updates: Partial<Member>) => {

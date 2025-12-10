@@ -269,13 +269,20 @@ const MemberManagement: React.FC<MemberManagementProps> = ({ userRole }) => {
   }
 
   // --- MEMBER VIEW ---
-  if (userRole === UserRole.MEMBER && members.length > 0) {
+  if (userRole === UserRole.MEMBER) {
+    if (members.length > 0) {
+      return (
+        <MemberProfile
+          member={members[0]}
+          transactions={transactions}
+        />
+      );
+    }
     return (
-      <MemberProfile
-        member={members[0]}
-        transactions={transactions}
-        loanSummary={loanSummary}
-      />
+      <div className="flex h-96 items-center justify-center flex-col gap-4 text-gray-400">
+        <Loader2 className="w-8 h-8 animate-spin text-emerald-600" />
+        <p>Loading your profile...</p>
+      </div>
     );
   }
 
