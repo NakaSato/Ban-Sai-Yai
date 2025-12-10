@@ -23,6 +23,16 @@ public abstract class BaseEntity {
   @GeneratedValue(strategy = GenerationType.IDENTITY)
   private Long id;
 
+  @Column(name = "uuid", unique = true, nullable = false, updatable = false)
+  private java.util.UUID uuid;
+
+  @PrePersist
+  protected void generateUuid() {
+    if (uuid == null) {
+      uuid = java.util.UUID.randomUUID();
+    }
+  }
+
   @Column(name = "created_at", nullable = false, updatable = false)
   @CreationTimestamp
   private LocalDateTime createdAt;
@@ -78,5 +88,13 @@ public abstract class BaseEntity {
 
   public void setUpdatedBy(String updatedBy) {
     this.updatedBy = updatedBy;
+  }
+
+  public java.util.UUID getUuid() {
+    return uuid;
+  }
+
+  public void setUuid(java.util.UUID uuid) {
+    this.uuid = uuid;
   }
 }

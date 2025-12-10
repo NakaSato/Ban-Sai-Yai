@@ -1,0 +1,169 @@
+@startuml dataflow-level1
+'===============================================
+' DFD Level 1: System Decomposition
+' Modern C4-Style Design - Improved Layout
+'===============================================
+
+!define PRIMARY #0D47A1
+!define SECONDARY #1565C0
+!define ACCENT #42A5F5
+!define SUCCESS #43A047
+!define WARNING #FB8C00
+!define GRAY #607D8B
+!define GRAY_LIGHT #ECEFF1
+!define WHITE #FFFFFF
+!define TEXT_LIGHT #FFFFFF
+
+skinparam backgroundColor WHITE
+skinparam defaultFontName "Segoe UI, Roboto, Arial, sans-serif"
+skinparam defaultFontSize 12
+skinparam shadowing false
+skinparam ArrowColor #546E7A
+skinparam ArrowThickness 1.5
+skinparam Padding 10
+skinparam RankSep 60
+skinparam NodeSep 40
+
+title <font size=20><b>DFD Level 1: System Decomposition</b></font>\n<font size=13 color=#607D8B>Ban Sai Yai Savings Group - 6 Main Processes</font>
+
+' ========================================
+' USERS (External Entities)
+' ========================================
+skinparam rectangle<<User>> {
+    BackgroundColor PRIMARY
+    FontColor TEXT_LIGHT
+    BorderColor PRIMARY
+    RoundCorner 12
+    Padding 15
+}
+
+rectangle "**President**\n<size:10>Approver</size>" <<User>> as E1
+rectangle "**Secretary**\n<size:10>Accountant</size>" <<User>> as E2
+rectangle "**Officer**\n<size:10>Operator</size>" <<User>> as E3
+rectangle "**Member**\n<size:10>End User</size>" <<User>> as E4
+
+' ========================================
+' PROCESSES (6 Core Modules)
+' ========================================
+skinparam rectangle<<Process>> {
+    BackgroundColor SECONDARY
+    FontColor TEXT_LIGHT
+    BorderColor SECONDARY
+    RoundCorner 25
+    Padding 12
+}
+
+rectangle "**1.0**\n<size:14>Authentication</size>\n<size:9>JWT / RBAC</size>" <<Process>> as P1
+rectangle "**2.0**\n<size:14>Member</size>\n<size:9>Registration</size>" <<Process>> as P2
+rectangle "**3.0**\n<size:14>Savings</size>\n<size:9>Deposits</size>" <<Process>> as P3
+rectangle "**4.0**\n<size:14>Loan</size>\n<size:9>Apply / Approve</size>" <<Process>> as P4
+rectangle "**5.0**\n<size:14>Payment</size>\n<size:9>Repayment</size>" <<Process>> as P5
+rectangle "**6.0**\n<size:14>Accounting</size>\n<size:9>GL / Reports</size>" <<Process>> as P6
+
+' ========================================
+' DATA STORES
+' ========================================
+skinparam database<<Store>> {
+    BackgroundColor ACCENT
+    FontColor TEXT_LIGHT
+    BorderColor ACCENT
+}
+
+database "**D1**\nUsers" <<Store>> as D1
+database "**D2**\nMembers" <<Store>> as D2
+database "**D3**\nSavings" <<Store>> as D3
+database "**D4**\nLoans" <<Store>> as D4
+database "**D5**\nPayments" <<Store>> as D5
+database "**D6**\nGL" <<Store>> as D6
+
+' ========================================
+' EXTERNAL SYSTEMS
+' ========================================
+skinparam rectangle<<Ext>> {
+    BackgroundColor GRAY_LIGHT
+    FontColor #37474F
+    BorderColor GRAY
+    BorderStyle dashed
+    RoundCorner 8
+}
+
+rectangle "**Email**\n<size:9>SMTP</size>" <<Ext>> as EX1
+rectangle "**Files**\n<size:9>Storage</size>" <<Ext>> as EX2
+
+' ========================================
+' LAYOUT GROUPS
+' ========================================
+' Row 1: Users
+E1 -[hidden]right- E2
+E2 -[hidden]right- E3
+E3 -[hidden]right- E4
+
+' Row 2: Processes
+P1 -[hidden]right- P2
+P2 -[hidden]right- P3
+P3 -[hidden]right- P4
+P4 -[hidden]right- P5
+P5 -[hidden]right- P6
+
+' Row 3: Data Stores
+D1 -[hidden]right- D2
+D2 -[hidden]right- D3
+D3 -[hidden]right- D4
+D4 -[hidden]right- D5
+D5 -[hidden]right- D6
+
+' ========================================
+' DATA FLOWS
+' ========================================
+
+' Authentication (all users)
+E1 -down-> P1 : login
+E2 -down-> P1 : login
+E3 -down-> P1 : login
+E4 -down-> P1 : login
+P1 -down-> D1 : validate
+
+' Member Management
+E3 -down-> P2 : register
+P2 -down-> D2 : CRUD
+P2 ..> EX1 : welcome
+
+' Savings
+E3 -down-> P3 : deposit
+E4 -down-> P3 : balance
+P3 -down-> D3 : txn
+
+' Loan
+E3 -down-> P4 : apply
+E1 -down-> P4 : approve
+E4 -down-> P4 : status
+P4 -down-> D4 : CRUD
+P4 ..> EX1 : notify
+
+' Payment
+E3 -down-> P5 : receive
+E4 -down-> P5 : history
+P5 -down-> D5 : record
+P5 ..> EX2 : receipt
+
+' Accounting (receives from all transactions)
+E2 -down-> P6 : close
+P3 -down-> P6 : journal
+P4 -down-> P6 : journal
+P5 -down-> P6 : journal
+P6 -down-> D6 : entries
+P6 ..> EX2 : reports
+
+' ========================================
+' LEGEND
+' ========================================
+legend bottom right
+  |<#0D47A1>     | External Entity (User) |
+  |<#1565C0>     | Process |
+  |<#42A5F5>     | Data Store |
+  |<#ECEFF1>     | External System |
+  | —→ | Data Flow |
+  | ···> | Output Flow |
+endlegend
+
+@enduml

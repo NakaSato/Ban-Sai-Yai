@@ -28,9 +28,9 @@ import java.util.UUID;
 @Entity
 @Table(name = "loan", indexes = {
     @Index(name = "idx_loan_number", columnList = "loanNumber"),
-    @Index(name = "idx_member_id", columnList = "memberId"),
-    @Index(name = "idx_status", columnList = "status"),
-    @Index(name = "idx_start_date", columnList = "startDate"),
+    @Index(name = "idx_loan_member_id", columnList = "memberId"),
+    @Index(name = "idx_loan_status", columnList = "status"),
+    @Index(name = "idx_loan_start_date", columnList = "startDate"),
     @Index(name = "idx_loan_uuid", columnList = "uuid")
 })
 @EntityListeners(AuditingEntityListener.class)
@@ -739,5 +739,38 @@ public class Loan extends BaseEntity {
       loan.setUpdatedBy(this.updatedBy);
       return loan;
     }
+  }
+
+  // Helper methods
+  public boolean isActive() {
+    return LoanStatus.ACTIVE.equals(this.status);
+  }
+
+  public java.math.BigDecimal calculateAccruedInterest(LocalDate paymentDate) {
+    if (outstandingBalance == null || outstandingBalance.compareTo(java.math.BigDecimal.ZERO) == 0) {
+      return java.math.BigDecimal.ZERO;
+    }
+    if (interestRate == null) {
+      return java.math.BigDecimal.ZERO;
+    }
+
+    // Simple daily interest calculation
+    // Interest = Outstanding * (Rate/100) * (Days/365)
+    java.math.BigDecimal annualRate = interestRate.divide(new java.math.BigDecimal("100"), 4,
+        java.math.RoundingMode.HALF_UP);
+    java.math.BigDecimal dailyRate = annualRate.divide(new java.math.BigDecimal("365"), 8,
+        java.math.RoundingMode.HALF_UP);
+
+    LocalDate fromDate = startDate;
+    if (fromDate == null)
+      fromDate = LocalDate.now().minusDays(30); // Fallback
+
+    long days = java.time.temporal.ChronoUnit.DAYS.between(fromDate, paymentDate);
+    if (days <= 0)
+      return java.math.BigDecimal.ZERO;
+
+    return outstandingBalance.multiply(dailyRate)
+        .multiply(new java.math.BigDecimal(days))
+        .setScale(2, java.math.RoundingMode.HALF_UP);
   }
 }

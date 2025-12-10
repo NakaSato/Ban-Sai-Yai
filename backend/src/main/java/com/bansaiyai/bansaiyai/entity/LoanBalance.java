@@ -99,6 +99,10 @@ public class LoanBalance extends BaseEntity {
   @Size(max = 500, message = "Notes must not exceed 500 characters")
   private String notes;
 
+  @Column(name = "is_verified", nullable = false)
+  @Builder.Default
+  private Boolean isVerified = false;
+
   // Business logic methods
   /**
    * Calculate total opening balance

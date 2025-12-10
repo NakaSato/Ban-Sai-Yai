@@ -75,9 +75,11 @@ public class AsyncConfig implements AsyncConfigurer {
    * Custom exception handler for async operations.
    */
   private static class AsyncExceptionHandler implements AsyncUncaughtExceptionHandler {
+    private static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(AsyncExceptionHandler.class);
+
     @Override
     public void handleUncaughtException(Throwable ex, Method method, Object... params) {
-      log.error("Async exception in method: {} with params: {}",
+      logger.error("Async exception in method: {} with params: {}",
           method.getName(), params, ex);
     }
   }

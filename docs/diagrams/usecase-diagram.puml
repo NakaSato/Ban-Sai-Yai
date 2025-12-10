@@ -1,0 +1,140 @@
+@startuml usecase-diagram
+'===============================================
+' Use Case Diagram - Loan Request to Approval
+' C4 Model Style - Ban Sai Yai Savings Cooperative
+'===============================================
+
+left to right direction
+skinparam backgroundColor #FFFFFF
+skinparam defaultFontName "Segoe UI, Arial"
+skinparam defaultFontSize 11
+skinparam shadowing false
+
+' --- C4 Color Palette ---
+!define C4_BLUE #438DD5
+!define C4_BLUE_DARK #1168BD
+!define C4_BLUE_LIGHT #85BBF0
+!define C4_PERSON #08427B
+!define C4_PERSON_BORDER #073B6F
+!define C4_GRAY #999999
+!define C4_GREEN #27AE60
+!define C4_RED #E74C3C
+
+' --- Actor Styling (C4 Person) ---
+skinparam actor {
+    BackgroundColor #08427B
+    BorderColor #073B6F
+    BorderThickness 2
+    FontColor #FFFFFF
+    FontSize 11
+    FontStyle bold
+}
+
+' --- Use Case Styling (C4 Container) ---
+skinparam usecase {
+    BackgroundColor #438DD5
+    BorderColor #3C7FC0
+    BorderThickness 2
+    FontColor #FFFFFF
+    FontSize 10
+}
+
+' --- System Boundary (C4 System) ---
+skinparam rectangle {
+    BackgroundColor #FFFFFF
+    BorderColor #1168BD
+    BorderThickness 2
+    RoundCorner 5
+    FontColor #1168BD
+    FontSize 14
+    FontStyle bold
+}
+
+' --- Arrow Styling ---
+skinparam arrow {
+    Color #707070
+    Thickness 1
+}
+
+title <size:18><b>Loan Request & Approval</b></size>\n<size:10>[Use Case Diagram] Ban Sai Yai Savings Cooperative</size>
+
+' ========================================
+' ACTORS (C4 Person Style)
+' ========================================
+actor "Member\n<size:9>[Person]</size>\n<size:8>สมาชิก</size>" as Member
+actor "Officer\n<size:9>[Person]</size>\n<size:8>เจ้าหน้าที่</size>" as Officer
+actor "President\n<size:9>[Person]</size>\n<size:8>ประธาน</size>" as President
+
+' ========================================
+' SYSTEM BOUNDARY (C4 Software System)
+' ========================================
+rectangle "Loan Management System\n<size:9>[Software System]</size>" as System {
+    
+    ' --- Member Use Cases (Primary) ---
+    usecase "Submit Loan\nRequest\n<size:8>[Use Case]</size>" as UC_Submit #438DD5
+    usecase "Upload\nDocuments\n<size:8>[Use Case]</size>" as UC_Upload #438DD5
+    usecase "View Loan\nStatus\n<size:8>[Use Case]</size>" as UC_Status #438DD5
+    
+    ' --- System Components (C4 Component Style) ---
+    usecase "Validate\nEligibility\n<size:8>[Component]</size>" as UC_Validate #85BBF0
+    usecase "Calculate\nInterest\n<size:8>[Component]</size>" as UC_Interest #85BBF0
+    
+    ' --- Officer Use Cases ---
+    usecase "Review\nApplication\n<size:8>[Use Case]</size>" as UC_Review #438DD5
+    usecase "Verify\nDocuments\n<size:8>[Use Case]</size>" as UC_Verify #438DD5
+    
+    ' --- President Use Cases (Decision) ---
+    usecase "Approve\nLoan\n<size:8>[Use Case]</size>" as UC_Approve #27AE60
+    usecase "Reject\nLoan\n<size:8>[Use Case]</size>" as UC_Reject #E74C3C
+    
+    ' --- Notification Component ---
+    usecase "Notify\nMember\n<size:8>[Component]</size>" as UC_Notify #85BBF0
+}
+
+' ========================================
+' ACTOR RELATIONSHIPS
+' ========================================
+Member --> UC_Submit : submits
+Member --> UC_Upload : attaches
+Member --> UC_Status : views
+
+Officer --> UC_Review : performs
+Officer --> UC_Verify : checks
+
+President --> UC_Approve : decides
+President --> UC_Reject : decides
+
+' ========================================
+' INCLUDE RELATIONSHIPS
+' ========================================
+UC_Submit ..> UC_Validate : <<include>>
+UC_Submit ..> UC_Interest : <<include>>
+UC_Review ..> UC_Verify : <<include>>
+UC_Approve ..> UC_Review : <<include>>
+UC_Reject ..> UC_Review : <<include>>
+UC_Approve ..> UC_Notify : <<include>>
+UC_Reject ..> UC_Notify : <<include>>
+
+' ========================================
+' EXTEND RELATIONSHIPS
+' ========================================
+UC_Upload ..> UC_Submit : <<extend>>
+
+' ========================================
+' C4 LEGEND
+' ========================================
+legend bottom right
+  <b>C4 Legend</b>
+  |<#08427B> Person |
+  |<#438DD5> Use Case |
+  |<#85BBF0> Component |
+  |<#27AE60> Approve |
+  |<#E74C3C> Reject |
+  ----
+  ——> Association
+  ..> <<include>> / <<extend>>
+endlegend
+
+footer <size:9>C4 Model - Use Case View | Ban Sai Yai Savings Cooperative</size>
+
+@enduml

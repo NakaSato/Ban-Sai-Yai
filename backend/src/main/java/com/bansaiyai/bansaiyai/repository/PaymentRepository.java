@@ -138,6 +138,11 @@ public interface PaymentRepository extends JpaRepository<Payment, Long> {
         List<Payment> findPaymentsRequiringAttention(@Param("attentionStatuses") List<PaymentStatus> attentionStatuses);
 
         /**
+         * Find payments by member and type
+         */
+        List<Payment> findByMemberIdAndPaymentType(Long memberId, PaymentType paymentType);
+
+        /**
          * Count payments by status
          */
         @Query("SELECT COUNT(p) FROM Payment p WHERE p.paymentStatus = :status")
@@ -279,4 +284,14 @@ public interface PaymentRepository extends JpaRepository<Payment, Long> {
         BigDecimal sumInterestByMemberAndYear(@Param("memberId") Long memberId, @Param("year") Integer year);
 
         List<Payment> findByApprovalStatus(ApprovalStatus approvalStatus);
+
+        @Query("SELECT p.paymentType, COALESCE(SUM(p.amount), 0) FROM Payment p WHERE p.paymentDate BETWEEN :startDate AND :endDate AND p.paymentStatus = 'COMPLETED' GROUP BY p.paymentType")
+        List<Object[]> findRevenueByDateRangeGroupByType(
+                        @Param("startDate") LocalDate startDate,
+                        @Param("endDate") LocalDate endDate);
+
+        @Query("SELECT p FROM Payment p WHERE p.member.id = :memberId AND p.paymentDate BETWEEN :startDate AND :endDate ORDER BY p.paymentDate ASC")
+        List<Payment> findByMemberIdAndDateRange(@Param("memberId") Long memberId,
+                        @Param("startDate") LocalDate startDate,
+                        @Param("endDate") LocalDate endDate);
 }

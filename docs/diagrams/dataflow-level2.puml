@@ -1,0 +1,108 @@
+@startuml dataflow-level2
+'===============================================
+' DFD Level 2: Loan Process (4.0)
+' Modern C4-Style Design
+'===============================================
+
+!define PRIMARY #0D47A1
+!define SECONDARY #1565C0
+!define ACCENT #42A5F5
+!define SUCCESS #66BB6A
+!define WARNING #FFA726
+!define GRAY #607D8B
+!define GRAY_LIGHT #ECEFF1
+!define WHITE #FFFFFF
+!define TEXT_LIGHT #FFFFFF
+
+skinparam backgroundColor WHITE
+skinparam defaultFontName "Segoe UI, Roboto, Arial, sans-serif"
+skinparam defaultFontSize 11
+skinparam shadowing false
+skinparam ArrowColor #78909C
+skinparam ArrowThickness 1.5
+
+title <font size=18><b>DFD Level 2</b></font>\n<font size=14 color=#607D8B>Process 4.0 - Loan Management</font>
+
+' ========================================
+' USERS
+' ========================================
+skinparam rectangle<<User>> {
+    BackgroundColor PRIMARY
+    FontColor TEXT_LIGHT
+    BorderColor PRIMARY
+    RoundCorner 10
+}
+
+rectangle "**Officer**" <<User>> as E1
+rectangle "**President**" <<User>> as E2
+rectangle "**Member**" <<User>> as E3
+
+' ========================================
+' SUB-PROCESSES (4.1 - 4.5)
+' ========================================
+skinparam rectangle<<Process>> {
+    BackgroundColor SECONDARY
+    FontColor TEXT_LIGHT
+    BorderColor SECONDARY
+    RoundCorner 20
+}
+
+rectangle "<b>4.1</b>\nCheck\nEligibility" <<Process>> as P41
+rectangle "<b>4.2</b>\nCreate\nApplication" <<Process>> as P42
+rectangle "<b>4.3</b>\nApproval" <<Process>> as P43
+rectangle "<b>4.4</b>\nDisburse" <<Process>> as P44
+rectangle "<b>4.5</b>\nTrack" <<Process>> as P45
+
+' ========================================
+' DATA STORES
+' ========================================
+skinparam database<<Store>> {
+    BackgroundColor ACCENT
+    FontColor TEXT_LIGHT
+    BorderColor ACCENT
+}
+
+database "D2\nMembers" <<Store>> as D2
+database "D4\nLoans" <<Store>> as D4
+database "D3\nSavings" <<Store>> as D3
+
+' ========================================
+' LINEAR FLOW (Left to Right)
+' ========================================
+
+' Step 1: Check eligibility
+E1 -down-> P41 : request
+P41 -down-> D2 : 5x rule
+
+' Step 2: Create application  
+P41 -right-> P42 : eligible
+P42 -down-> D4 : PENDING
+
+' Step 3: Approval
+P42 -right-> P43 : submit
+E2 -down-> P43 : approve
+P43 -down-> D4 : status
+
+' Step 4: Disburse
+P43 -right-> P44 : approved
+P44 -down-> D4 : ACTIVE
+P44 -down-> D3 : credit
+
+' Step 5: Track
+P44 -right-> P45 : done
+E3 -down-> P45 : view
+D4 -up-> P45 : info
+
+' ========================================
+' FLOW LEGEND
+' ========================================
+legend bottom
+|<#E3F2FD>     | **Loan Process Flow** |
+| <b>Step 1</b> | Officer checks member eligibility (5× share capital) |
+| <b>Step 2</b> | Create loan application (PENDING status) |
+| <b>Step 3</b> | President approves or rejects |
+| <b>Step 4</b> | Disburse to member savings (ACTIVE) |
+| <b>Step 5</b> | Member tracks loan status |
+endlegend
+
+@enduml

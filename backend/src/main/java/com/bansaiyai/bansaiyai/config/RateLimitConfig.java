@@ -44,8 +44,8 @@ public class RateLimitConfig {
     return new RateLimitFilter(requestsPerMinute, burstCapacity, objectMapper);
   }
 
-  @Slf4j
   public static class RateLimitFilter extends OncePerRequestFilter {
+    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(RateLimitFilter.class);
 
     private final int requestsPerMinute;
     private final int burstCapacity;
@@ -80,13 +80,12 @@ public class RateLimitConfig {
         response.setContentType(MediaType.APPLICATION_JSON_VALUE);
         response.setHeader("Retry-After", String.valueOf(bucket.getRetryAfterSeconds()));
 
-        ErrorResponse errorResponse = ErrorResponse.builder()
-            .timestamp(LocalDateTime.now())
-            .status(HttpStatus.TOO_MANY_REQUESTS.value())
-            .error("Too Many Requests")
-            .message("Rate limit exceeded. Please try again later.")
-            .path(request.getRequestURI())
-            .build();
+        ErrorResponse errorResponse = new ErrorResponse(
+            LocalDateTime.now(),
+            HttpStatus.TOO_MANY_REQUESTS.value(),
+            "Too Many Requests",
+            "Rate limit exceeded. Please try again later.",
+            request.getRequestURI());
 
         response.getWriter().write(objectMapper.writeValueAsString(errorResponse));
       }

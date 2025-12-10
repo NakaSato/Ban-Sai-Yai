@@ -28,7 +28,7 @@ public class SystemRoleController {
 
   @jakarta.annotation.PostConstruct
   public void init() {
-    System.out.println("SystemRoleController INITIALIZED!!!!!!");
+    log.info("SystemRoleController INITIALIZED");
   }
 
   private final RoleService roleService;
@@ -37,14 +37,14 @@ public class SystemRoleController {
   public SystemRoleController(RoleService roleService, RolePermissionService rolePermissionService) {
     this.roleService = roleService;
     this.rolePermissionService = rolePermissionService;
-    System.out.println("SystemRoleController Constructor Called with: " + roleService + ", " + rolePermissionService);
+    log.debug("SystemRoleController Constructor Called with: {}, {}", roleService, rolePermissionService);
   }
 
   /**
    * Get all available roles in system
    */
   @GetMapping
-  @PreAuthorize("hasAnyRole('ADMIN', 'PRESIDENT', 'SECRETARY')")
+  @PreAuthorize("hasAnyRole('PRESIDENT', 'SECRETARY')")
   public ResponseEntity<Map<String, Object>> getAllRoles() {
     // Get roles from database entities using RolePermissionService
     Map<String, Set<String>> rolePermissionMatrix = rolePermissionService.getRolePermissionMatrix();
@@ -76,7 +76,7 @@ public class SystemRoleController {
   }
 
   @GetMapping("/hierarchy")
-  @PreAuthorize("hasAnyRole('ADMIN', 'PRESIDENT')")
+  @PreAuthorize("hasRole('PRESIDENT')")
   public ResponseEntity<Map<String, Object>> getRoleHierarchy() {
     List<User.Role> hierarchy = roleService.getRoleHierarchy();
 
@@ -91,7 +91,7 @@ public class SystemRoleController {
    * Get permissions for a specific role
    */
   @GetMapping("/{role}/permissions")
-  @PreAuthorize("hasAnyRole('ADMIN', 'PRESIDENT', 'SECRETARY')")
+  @PreAuthorize("hasAnyRole('PRESIDENT', 'SECRETARY')")
   public ResponseEntity<Map<String, Object>> getRolePermissions(@PathVariable User.Role role) {
     Set<String> permissions = roleService.getRolePermissions(role);
     String description = roleService.getRoleDescription(role);
@@ -109,7 +109,7 @@ public class SystemRoleController {
    * Get all permissions available in the system
    */
   @GetMapping("/permissions")
-  @PreAuthorize("hasAnyRole('ADMIN', 'PRESIDENT')")
+  @PreAuthorize("hasRole('PRESIDENT')")
   public ResponseEntity<Map<String, Object>> getAllPermissions() {
     Set<String> permissions = roleService.getAllPermissions();
 
@@ -124,7 +124,7 @@ public class SystemRoleController {
    * Get roles that have a specific permission
    */
   @GetMapping("/by-permission/{permission}")
-  @PreAuthorize("hasAnyRole('ADMIN', 'PRESIDENT')")
+  @PreAuthorize("hasRole('PRESIDENT')")
   public ResponseEntity<Map<String, Object>> getRolesByPermission(@PathVariable String permission) {
     List<User.Role> roles = roleService.getRolesWithPermission(permission);
 
@@ -140,7 +140,7 @@ public class SystemRoleController {
    * Check if a role can manage another role
    */
   @GetMapping("/{managerRole}/can-manage/{targetRole}")
-  @PreAuthorize("hasAnyRole('ADMIN', 'PRESIDENT', 'SECRETARY')")
+  @PreAuthorize("hasAnyRole('PRESIDENT', 'SECRETARY')")
   public ResponseEntity<Map<String, Object>> canManageRole(
       @PathVariable User.Role managerRole,
       @PathVariable User.Role targetRole) {
@@ -159,7 +159,7 @@ public class SystemRoleController {
    * Validate role assignment
    */
   @PostMapping("/validate-assignment")
-  @PreAuthorize("hasAnyRole('ADMIN', 'PRESIDENT', 'SECRETARY', 'OFFICER')")
+  @PreAuthorize("hasAnyRole('PRESIDENT', 'SECRETARY', 'OFFICER')")
   public ResponseEntity<Map<String, Object>> validateRoleAssignment(
       @RequestBody Map<String, String> request) {
 
@@ -171,6 +171,9 @@ public class SystemRoleController {
     User.Role currentRole = getCurrentUserRole(authentication);
     User.Role targetRole = User.Role.valueOf(request.get("targetRole").toUpperCase());
 
+    // Only PRESIDENT can assign roles
+    // Actually, targetRole parsing might fail if ADMIN is passed. Logic upstream
+    // handles "canManage".
     boolean isValid = roleService.isValidRoleAssignment(currentRole, targetRole);
 
     Map<String, Object> response = new HashMap<>();
@@ -187,7 +190,7 @@ public class SystemRoleController {
    * Get permissions for a specific role by ID
    */
   @GetMapping("/by-id/{id}/permissions")
-  @PreAuthorize("hasAnyRole('ADMIN', 'PRESIDENT', 'SECRETARY')")
+  @PreAuthorize("hasAnyRole('PRESIDENT', 'SECRETARY')")
   public ResponseEntity<Map<String, Object>> getRolePermissionsById(@PathVariable Integer id) {
     try {
       String roleName = "ROLE_" + User.Role.values()[id].name();
@@ -212,7 +215,7 @@ public class SystemRoleController {
    * Add permission to role
    */
   @PostMapping("/{id}/permissions")
-  @PreAuthorize("hasAnyRole('ADMIN', 'PRESIDENT')")
+  @PreAuthorize("hasRole('PRESIDENT')")
   public ResponseEntity<Map<String, Object>> addPermissionToRole(
       @PathVariable Integer id,
       @Valid @RequestBody PermissionRequest request) {
@@ -251,7 +254,7 @@ public class SystemRoleController {
    * Remove permission from role
    */
   @DeleteMapping("/{id}/permissions/{permId}")
-  @PreAuthorize("hasAnyRole('ADMIN', 'PRESIDENT')")
+  @PreAuthorize("hasRole('PRESIDENT')")
   public ResponseEntity<Map<String, Object>> removePermissionFromRole(
       @PathVariable Integer id,
       @PathVariable Integer permId) {
@@ -295,7 +298,7 @@ public class SystemRoleController {
    * Get role statistics
    */
   @GetMapping("/statistics")
-  @PreAuthorize("hasAnyRole('ADMIN', 'PRESIDENT')")
+  @PreAuthorize("hasRole('PRESIDENT')")
   public ResponseEntity<Map<String, Object>> getRoleStatistics() {
     List<User.Role> allRoles = roleService.getAllRoles();
 
@@ -322,8 +325,7 @@ public class SystemRoleController {
    */
   private String getRoleDescriptionFromName(String roleName) {
     switch (roleName.replace("ROLE_", "")) {
-      case "ADMIN":
-        return "System Administrator - Full system access and user management";
+
       case "PRESIDENT":
         return "President - Organization leadership with full operational access";
       case "SECRETARY":

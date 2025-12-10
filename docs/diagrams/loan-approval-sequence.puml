@@ -1,0 +1,133 @@
+@startuml loan-approval-sequence
+'===============================================
+' Sequence Diagram - Loan Approval
+' C4 Model Style - Ban Sai Yai Savings Cooperative
+'===============================================
+
+skinparam backgroundColor #FFFFFF
+skinparam defaultFontName "Segoe UI, Arial"
+skinparam defaultFontSize 11
+skinparam shadowing false
+
+' --- C4 Color Palette ---
+skinparam participant {
+    BackgroundColor #438DD5
+    BorderColor #3C7FC0
+    FontColor #FFFFFF
+    FontSize 11
+}
+
+skinparam actor {
+    BackgroundColor #08427B
+    BorderColor #073B6F
+    FontColor #FFFFFF
+}
+
+skinparam database {
+    BackgroundColor #438DD5
+    BorderColor #3C7FC0
+    FontColor #FFFFFF
+}
+
+skinparam sequence {
+    ArrowColor #707070
+    ArrowThickness 1
+    LifeLineBorderColor #707070
+    LifeLineBackgroundColor #F5F5F5
+}
+
+skinparam note {
+    BackgroundColor #FEF3C7
+    BorderColor #F59E0B
+    FontSize 9
+}
+
+title <size:18><b>Loan Approval</b></size>\n<size:10>[Sequence Diagram] Ban Sai Yai Savings Cooperative</size>
+
+' ========================================
+' PARTICIPANTS
+' ========================================
+actor "President\n<size:9>ประธาน</size>" as President #08427B
+participant "Web App\n<size:8>[Frontend]</size>" as Frontend #438DD5
+participant "Loan Service\n<size:8>[Backend]</size>" as LoanService #438DD5
+participant "Notification\n<size:8>[Component]</size>" as Notifier #85BBF0
+database "Database\n<size:8>[PostgreSQL]</size>" as DB #438DD5
+actor "Member\n<size:9>สมาชิก</size>" as Member #08427B
+
+' ========================================
+' SEQUENCE FLOW
+' ========================================
+
+President -> Frontend : View reviewed loans
+activate Frontend #438DD5
+
+Frontend -> LoanService : GET /api/loans?status=REVIEWED
+activate LoanService #438DD5
+LoanService -> DB : Fetch reviewed loans
+DB --> LoanService : Loan list
+LoanService --> Frontend : Reviewed loans
+deactivate LoanService
+
+Frontend --> President : Display loans for approval
+
+President -> Frontend : Select loan & decide
+
+alt #D4EDDA Approve
+    Frontend -> LoanService : PUT /api/loans/{id}/approve
+    activate LoanService #438DD5
+    
+    LoanService -> DB : Update status (APPROVED)
+    DB --> LoanService : Success
+    
+    LoanService -> Notifier : sendNotification(memberId)
+    activate Notifier #85BBF0
+    Notifier --> LoanService : Sent
+    deactivate Notifier
+    
+    LoanService --> Frontend : 200 OK (APPROVED)
+    Frontend --> President : Loan approved
+    
+    note right of DB #D4EDDA
+        Status: **APPROVED**
+    end note
+    
+    Notifier -> Member : Email notification
+    
+else #F8D7DA Reject
+    Frontend -> LoanService : PUT /api/loans/{id}/reject
+    
+    LoanService -> DB : Update status (REJECTED)
+    DB --> LoanService : Success
+    
+    LoanService -> Notifier : sendNotification(memberId, reason)
+    activate Notifier #85BBF0
+    Notifier --> LoanService : Sent
+    deactivate Notifier
+    
+    LoanService --> Frontend : 200 OK (REJECTED)
+    Frontend --> President : Loan rejected
+    
+    note right of DB #F8D7DA
+        Status: **REJECTED**
+    end note
+    
+    Notifier -> Member : Email notification
+    deactivate LoanService
+end
+
+deactivate Frontend
+
+' ========================================
+' LEGEND
+' ========================================
+legend bottom right
+  |<#08427B> Actor |
+  |<#438DD5> Service |
+  |<#85BBF0> Component |
+  |<#D4EDDA> Approved |
+  |<#F8D7DA> Rejected |
+endlegend
+
+footer <size:9>C4 Model - Sequence View | Loan Approval</size>
+
+@enduml

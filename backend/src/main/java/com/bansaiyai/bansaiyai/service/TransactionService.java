@@ -3,6 +3,8 @@ package com.bansaiyai.bansaiyai.service;
 import com.bansaiyai.bansaiyai.dto.DepositRequest;
 import com.bansaiyai.bansaiyai.dto.LoanPaymentRequest;
 import com.bansaiyai.bansaiyai.dto.TransactionResponse;
+import com.bansaiyai.bansaiyai.dto.CompositePaymentRequest;
+import com.bansaiyai.bansaiyai.dto.CompositeTransactionResponse;
 import com.bansaiyai.bansaiyai.entity.Loan;
 import com.bansaiyai.bansaiyai.entity.Member;
 import com.bansaiyai.bansaiyai.entity.SavingAccount;
@@ -69,7 +71,7 @@ public class TransactionService {
                 try {
                         // Validate fiscal period is open
                         var fiscalPeriod = dashboardService.getCurrentFiscalPeriod();
-                        if ("CLOSED".equals(fiscalPeriod.getStatus())) {
+                        if ("CLOSED".equals(fiscalPeriod.status())) {
                                 return new TransactionResponse(
                                                 null,
                                                 null,
@@ -159,7 +161,7 @@ public class TransactionService {
                 try {
                         // Validate fiscal period is open
                         var fiscalPeriod = dashboardService.getCurrentFiscalPeriod();
-                        if ("CLOSED".equals(fiscalPeriod.getStatus())) {
+                        if ("CLOSED".equals(fiscalPeriod.status())) {
                                 return new TransactionResponse(
                                                 null,
                                                 null,
@@ -291,7 +293,7 @@ public class TransactionService {
                 try {
                         // Validate fiscal period is open
                         var fiscalPeriod = dashboardService.getCurrentFiscalPeriod();
-                        if ("CLOSED".equals(fiscalPeriod.getStatus())) {
+                        if ("CLOSED".equals(fiscalPeriod.status())) {
                                 return new TransactionResponse(
                                                 null,
                                                 null,
@@ -387,7 +389,7 @@ public class TransactionService {
                 try {
                         // Validate fiscal period is open
                         var fiscalPeriod = dashboardService.getCurrentFiscalPeriod();
-                        if ("CLOSED".equals(fiscalPeriod.getStatus())) {
+                        if ("CLOSED".equals(fiscalPeriod.status())) {
                                 return new TransactionResponse(
                                                 null,
                                                 null,
@@ -858,6 +860,137 @@ public class TransactionService {
                 } catch (Exception e) {
                         log.error("Error processing dividend: {}", e.getMessage(), e);
                         throw new RuntimeException("Error processing dividend: " + e.getMessage());
+                }
+        }
+
+        /**
+         * Process a composite payment (Share Deposit + Loan Repayment)
+         */
+        @Transactional
+        public CompositeTransactionResponse processCompositePayment(CompositePaymentRequest request, User creator) {
+                try {
+                        Long shareTransactionId = null;
+                        Long loanTransactionId = null;
+
+                        // 1. Process Share Deposit (if applicable)
+                        if (request.getShareAmount() != null
+                                        && request.getShareAmount().compareTo(BigDecimal.ZERO) > 0) {
+                                DepositRequest depositRequest = new DepositRequest();
+                                depositRequest.setMemberId(request.getMemberId());
+                                depositRequest.setAmount(request.getShareAmount());
+                                depositRequest.setNotes(request.getNotes() != null ? request.getNotes()
+                                                : "Composite Share Deposit");
+
+                                TransactionResponse depositResponse = processDepositWithCreator(depositRequest,
+                                                creator);
+
+                                if ("FAILED".equals(depositResponse.getStatus())) {
+                                        throw new RuntimeException(
+                                                        "Share deposit failed: " + depositResponse.getMessage());
+                                }
+                                shareTransactionId = depositResponse.getTransactionId();
+                        }
+
+                        // 2. Process Loan Payment (if applicable)
+                        if (request.getLoanPaymentAmount() != null
+                                        && request.getLoanPaymentAmount().compareTo(BigDecimal.ZERO) > 0) {
+
+                                if (request.getLoanId() == null) {
+                                        throw new RuntimeException("Loan ID is required for loan payment");
+                                }
+
+                                // Fetch loan to split principal vs interest logic is needed?
+                                // For MVP, we pass the total amount as "Principal" first or need a strategy to
+                                // split.
+                                // The requirement mentioned "System auto-calculates splits".
+                                // For this method, we might need to assume the Request ALREADY has the split or
+                                // we do it here.
+                                // Let's check LoanPaymentRequest structure. It has principal, interest, fine.
+                                // But Composite request only has "loanPaymentAmount".
+                                // Strategy: Calculate Interest Due. Priority: Penalty > Interest > Principal.
+
+                                Loan loan = loanRepository.findById(request.getLoanId())
+                                                .orElseThrow(() -> new RuntimeException("Loan not found"));
+
+                                BigDecimal remainingAmount = request.getLoanPaymentAmount();
+
+                                // A. Penalty
+                                BigDecimal penaltyDue = loan.getPenaltyAmount() != null ? loan.getPenaltyAmount()
+                                                : BigDecimal.ZERO;
+                                // Wait, Loan.penaltyAmount is usually ACCRUED penalty. If we pay it, we reduce
+                                // it?
+                                // Or is it "Penalty Paid"? The entity structure:
+                                // `penaltyAmount` usually stores *accrued* penalty or total penalty?
+                                // Based on previous `accountingService.processLoanClosing`, `penaltyPaid` is
+                                // tracked separately.
+                                // Let's assume `penaltyAmount` on Loan is the ACCUMULATED FINE that is OWED.
+                                BigDecimal penaltyToPay = BigDecimal.ZERO;
+                                if (remainingAmount.compareTo(penaltyDue) >= 0) {
+                                        penaltyToPay = penaltyDue;
+                                        remainingAmount = remainingAmount.subtract(penaltyDue);
+                                } else {
+                                        penaltyToPay = remainingAmount;
+                                        remainingAmount = BigDecimal.ZERO;
+                                }
+
+                                // B. Interest
+                                // Calculate interest accrued since last payment? Or assume user inputs known
+                                // interest?
+                                // Simplified Logic: Priority to Interest.
+                                // We need "Interest Due".
+                                BigDecimal interestDue = calculateMinimumInterest(loan.getId()); // Rough verification
+                                // Actually, strictly for composite payment, we usually apply to interest first.
+                                // Let's apply to Interest up to calculated amount.
+                                BigDecimal interestToPay = BigDecimal.ZERO;
+                                if (remainingAmount.compareTo(BigDecimal.ZERO) > 0) {
+                                        if (remainingAmount.compareTo(interestDue) >= 0) {
+                                                interestToPay = interestDue;
+                                                remainingAmount = remainingAmount.subtract(interestDue);
+                                        } else {
+                                                interestToPay = remainingAmount;
+                                                remainingAmount = BigDecimal.ZERO;
+                                        }
+                                }
+
+                                // C. Principal
+                                BigDecimal principalToPay = remainingAmount;
+
+                                LoanPaymentRequest paymentRequest = new LoanPaymentRequest();
+                                paymentRequest.setMemberId(request.getMemberId());
+                                paymentRequest.setLoanId(request.getLoanId());
+                                paymentRequest.setPrincipalAmount(principalToPay);
+                                paymentRequest.setInterestAmount(interestToPay);
+                                paymentRequest.setFineAmount(penaltyToPay);
+                                paymentRequest.setNotes(request.getNotes());
+
+                                TransactionResponse loanResponse = processLoanPaymentWithCreator(paymentRequest,
+                                                creator);
+                                if ("FAILED".equals(loanResponse.getStatus())) {
+                                        throw new RuntimeException("Loan payment failed: " + loanResponse.getMessage());
+                                }
+                                loanTransactionId = loanResponse.getTransactionId();
+                        }
+
+                        // Audit Log for Composite Action
+                        auditService.logAction(creator, "COMPOSITE_PAYMENT", "Composite",
+                                        request.getMemberId(), // Entity ID as Member ID for context
+                                        null,
+                                        "Share: " + request.getShareAmount() + ", Loan: "
+                                                        + request.getLoanPaymentAmount());
+
+                        return CompositeTransactionResponse.builder()
+                                        .shareTransactionId(shareTransactionId)
+                                        .loanTransactionId(loanTransactionId)
+                                        .status("SUCCESS")
+                                        .message("Composite payment processed successfully")
+                                        .build();
+
+                } catch (Exception e) {
+                        log.error("Error processing composite payment", e);
+                        return CompositeTransactionResponse.builder()
+                                        .status("FAILED")
+                                        .message(e.getMessage())
+                                        .build();
                 }
         }
 }

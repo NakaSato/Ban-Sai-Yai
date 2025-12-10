@@ -17,7 +17,7 @@ import java.util.List;
 import java.util.UUID;
 
 @RestController
-@RequestMapping("/members")
+@RequestMapping("/api/members")
 @CrossOrigin(origins = "*", maxAge = 3600)
 public class MemberController {
 
@@ -53,7 +53,7 @@ public class MemberController {
    * @return Member details if authorized
    */
   @GetMapping("/{uuid}")
-  @PreAuthorize("hasAnyRole('ADMIN', 'PRESIDENT', 'SECRETARY', 'OFFICER', 'MEMBER')")
+  @PreAuthorize("hasAnyRole('PRESIDENT', 'SECRETARY', 'OFFICER', 'MEMBER')")
   public ResponseEntity<Member> getMemberById(@PathVariable UUID uuid, Authentication authentication) {
     // Get current user
     User currentUser = getCurrentUser(authentication);
@@ -95,7 +95,7 @@ public class MemberController {
    * @return Updated member
    */
   @PutMapping("/{uuid}")
-  @PreAuthorize("hasAnyRole('ADMIN', 'PRESIDENT', 'SECRETARY')")
+  @PreAuthorize("hasAnyRole('PRESIDENT', 'SECRETARY')")
   public ResponseEntity<Member> updateMember(@PathVariable UUID uuid, @RequestBody Member member) {
     return memberService.getMemberByUuid(uuid)
         .map(existingMember -> {
@@ -114,7 +114,7 @@ public class MemberController {
    * @return Success response
    */
   @DeleteMapping("/{uuid}")
-  @PreAuthorize("hasAnyRole('ADMIN', 'PRESIDENT')")
+  @PreAuthorize("hasRole('PRESIDENT')")
   public ResponseEntity<Void> deleteMember(@PathVariable UUID uuid) {
     memberService.deleteMemberByUuid(uuid);
     return ResponseEntity.noContent().build();

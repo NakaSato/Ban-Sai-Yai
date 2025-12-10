@@ -1,0 +1,115 @@
+@startuml pspec-loan-submission
+'===============================================
+' Process Specification - Loan Submission
+' PSPEC 1.0 - Ban Sai Yai Savings Cooperative
+'===============================================
+
+skinparam backgroundColor #FFFFFF
+skinparam defaultFontName "Segoe UI, Arial"
+skinparam defaultFontSize 11
+skinparam shadowing false
+
+skinparam activity {
+    BackgroundColor #438DD5
+    BorderColor #3C7FC0
+    FontColor #FFFFFF
+    DiamondBackgroundColor #FEF3C7
+    DiamondBorderColor #F59E0B
+}
+
+skinparam activityDiamond {
+    BackgroundColor #FEF3C7
+    BorderColor #F59E0B
+    FontColor #1F2937
+}
+
+title <size:18><b>PSPEC 1.0: Loan Submission</b></size>\n<size:10>Process Specification - ยื่นคำขอสินเชื่อ</size>
+
+|#E0E7FF|Member|
+|#DDD6FE|System|
+
+start
+
+|Member|
+:Fill Loan Application Form;
+note right
+  **Input:**
+  - Loan amount (จำนวนเงินกู้)
+  - Loan term (ระยะเวลา)
+  - Loan type (ประเภทสินเชื่อ)
+  - Purpose (วัตถุประสงค์)
+end note
+
+:Submit Application;
+
+|System|
+:Receive Loan Request;
+
+:Validate Member Eligibility;
+note right
+  **Check:**
+  - Member status = ACTIVE
+  - No overdue loans
+  - Share balance >= minimum
+end note
+
+if (Eligible?) then (Yes)
+    :Calculate Interest Rate;
+    note right
+      **Formula:**
+      Interest = Principal × Rate × Time
+      Rate based on loan type:
+      - Emergency: 1% /month
+      - Common: 0.75% /month
+      - Investment: 0.5% /month
+    end note
+    
+    :Generate Payment Schedule;
+    
+    :Save Loan Request;
+    note right
+      **Output:**
+      - Loan ID
+      - Status: PENDING
+      - Created timestamp
+    end note
+    
+    |Member|
+    :Receive Confirmation;
+    note right
+      **Display:**
+      - Loan ID
+      - Amount
+      - Interest rate
+      - Monthly payment
+    end note
+    
+    #D4EDDA:Submission Successful;
+    
+else (No)
+    |System|
+    :Generate Rejection Reason;
+    
+    |Member|
+    :Display Error Message;
+    
+    #F8D7DA:Submission Failed;
+endif
+
+stop
+
+legend bottom
+  **PSPEC 1.0: Loan Submission**
+  --
+  **Process ID:** PSPEC-1.0
+  **Process Name:** Submit Loan Request (ยื่นคำขอสินเชื่อ)
+  **Trigger:** Member submits loan application
+  **Input:** Loan application data
+  **Output:** Loan ID with PENDING status
+  **Pre-condition:** Member is logged in and active
+  **Post-condition:** Loan record created in database
+endlegend
+
+footer <size:9>Process Specification | Ban Sai Yai Savings Cooperative</size>
+
+@enduml

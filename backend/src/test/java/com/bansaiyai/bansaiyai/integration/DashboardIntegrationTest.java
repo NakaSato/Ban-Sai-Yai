@@ -5,10 +5,10 @@ import com.bansaiyai.bansaiyai.dto.dashboard.MemberSearchResultDTO;
 import com.bansaiyai.bansaiyai.entity.Member;
 import com.bansaiyai.bansaiyai.repository.MemberRepository;
 import com.bansaiyai.bansaiyai.service.DashboardService;
+import com.bansaiyai.bansaiyai.BaseIntegrationTest;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
@@ -17,9 +17,8 @@ import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-@SpringBootTest
 @Transactional
-public class DashboardIntegrationTest {
+public class DashboardIntegrationTest extends BaseIntegrationTest {
 
     @Autowired
     private DashboardService dashboardService;
@@ -44,24 +43,24 @@ public class DashboardIntegrationTest {
                 .isActive(true)
                 .shareCapital(BigDecimal.valueOf(1000))
                 .build();
-        
+
         memberRepository.save(testMember);
     }
 
     @Test
     public void testGetCurrentFiscalPeriod() {
         FiscalPeriodDTO fiscalPeriod = dashboardService.getCurrentFiscalPeriod();
-        
+
         assertNotNull(fiscalPeriod);
-        assertNotNull(fiscalPeriod.getPeriod());
-        assertNotNull(fiscalPeriod.getStatus());
-        assertTrue(fiscalPeriod.getStatus().equals("OPEN") || fiscalPeriod.getStatus().equals("CLOSED"));
+        assertNotNull(fiscalPeriod.period());
+        assertNotNull(fiscalPeriod.status());
+        assertTrue(fiscalPeriod.status().equals("OPEN") || fiscalPeriod.status().equals("CLOSED"));
     }
 
     @Test
     public void testSearchMembers_ByName() {
         List<MemberSearchResultDTO> results = dashboardService.searchMembers("John", 5);
-        
+
         assertNotNull(results);
         assertFalse(results.isEmpty());
         assertTrue(results.stream().anyMatch(r -> r.getFirstName().contains("John")));
@@ -70,7 +69,7 @@ public class DashboardIntegrationTest {
     @Test
     public void testSearchMembers_ByMemberId() {
         List<MemberSearchResultDTO> results = dashboardService.searchMembers("TEST-001", 5);
-        
+
         assertNotNull(results);
         assertFalse(results.isEmpty());
         assertEquals(1, results.size());
@@ -79,7 +78,7 @@ public class DashboardIntegrationTest {
     @Test
     public void testSearchMembers_ByIdCard() {
         List<MemberSearchResultDTO> results = dashboardService.searchMembers("1234567890123", 5);
-        
+
         assertNotNull(results);
         assertFalse(results.isEmpty());
     }
@@ -87,7 +86,7 @@ public class DashboardIntegrationTest {
     @Test
     public void testSearchMembers_EmptyQuery() {
         List<MemberSearchResultDTO> results = dashboardService.searchMembers("", 5);
-        
+
         assertNotNull(results);
         assertTrue(results.isEmpty());
     }
@@ -95,7 +94,7 @@ public class DashboardIntegrationTest {
     @Test
     public void testSearchMembers_NoResults() {
         List<MemberSearchResultDTO> results = dashboardService.searchMembers("NonExistentMember12345", 5);
-        
+
         assertNotNull(results);
         assertTrue(results.isEmpty());
     }
@@ -119,7 +118,7 @@ public class DashboardIntegrationTest {
         }
 
         List<MemberSearchResultDTO> results = dashboardService.searchMembers("Test", 5);
-        
+
         assertNotNull(results);
         assertTrue(results.size() <= 5);
     }

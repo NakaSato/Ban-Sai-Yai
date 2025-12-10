@@ -39,7 +39,7 @@ public class Member extends BaseEntity {
    * UUID for external API use - prevents ID enumeration attacks
    * This is the primary identifier exposed in public APIs
    */
-  @Column(name = "uuid", nullable = false, unique = true, columnDefinition = "BINARY(16)")
+  @Column(name = "uuid", nullable = false, unique = true)
   private UUID uuid;
 
   @Column(name = "member_id", unique = true, nullable = false, length = 20)

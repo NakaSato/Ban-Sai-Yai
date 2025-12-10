@@ -13,6 +13,8 @@ import com.bansaiyai.bansaiyai.repository.SavingRepository;
 import com.bansaiyai.bansaiyai.repository.PaymentRepository;
 import com.bansaiyai.bansaiyai.repository.SavingTransactionRepository;
 import com.bansaiyai.bansaiyai.dto.DashboardDTO;
+import com.bansaiyai.bansaiyai.dto.dashboard.PARAnalysisDTO;
+import com.bansaiyai.bansaiyai.dto.dashboard.MembershipTrendsDTO;
 import com.bansaiyai.bansaiyai.entity.SavingTransaction;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -44,6 +46,7 @@ public class DashboardService {
   private final PaymentRepository paymentRepository;
   private final SavingTransactionRepository savingTransactionRepository;
   private final com.bansaiyai.bansaiyai.repository.AccountingRepository accountingRepository;
+  private final com.bansaiyai.bansaiyai.repository.AccountRepository accountRepository;
 
   /**
    * Get current fiscal period status
@@ -568,10 +571,205 @@ public class DashboardService {
       return "CRITICAL";
     } else if (delinquencyRate > 10) {
       return "WARNING";
-    } else if (delinquencyRate > 5) {
-      return "CAUTION";
-    } else {
-      return "HEALTHY";
+    }
+    return "HEALTHY";
+  }
+
+  /**
+   * Calculate Liquidity Ratio for President Dashboard
+   * Liquidity Ratio = (Cash + Bank Equivalents) / Total Savings Deposits
+   * Provides insight into the cooperative's ability to cover potential
+   * withdrawals.
+   */
+  public com.bansaiyai.bansaiyai.dto.dashboard.LiquidityDTO calculateLiquidityRatio() {
+    try {
+      // 1. Calculate Cash & Bank Balance (Asset Accounts like 10100, 10200)
+      // Assuming '10100' is Cash and '10200' is Bank based on standard chart of
+      // accounts
+      // Or by summing up "ASSET" category filtered by specific codes.
+      // For simplicity/robustness, we query the specific ledger accounts if they
+      // exist.
+
+      BigDecimal cashBalance = BigDecimal.ZERO;
+
+      // Calculate balance from accounting entries for Cash (10100) and Bank (10200)
+      // For asset accounts, balance = debits - credits
+      List<com.bansaiyai.bansaiyai.entity.AccountingEntry> cashEntries = accountingRepository.findAll().stream()
+          .filter(e -> "10100".equals(e.getAccountCode()) || "10200".equals(e.getAccountCode()))
+          .collect(java.util.stream.Collectors.toList());
+
+      BigDecimal totalDebits = cashEntries.stream()
+          .map(e -> e.getDebit() != null ? e.getDebit() : BigDecimal.ZERO)
+          .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+      BigDecimal totalCredits = cashEntries.stream()
+          .map(e -> e.getCredit() != null ? e.getCredit() : BigDecimal.ZERO)
+          .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+      cashBalance = totalDebits.subtract(totalCredits);
+
+      // If no accounts found (e.g. before full accounting seed), fallback to
+      // CashBoxTally calculation as a proxy
+      if (cashBalance.compareTo(BigDecimal.ZERO) == 0) {
+        // Fallback: Sum of all deposit transactions - withdrawals + Loan Interest/Fees
+        // - Disbursements
+        BigDecimal totalInflows = savingTransactionRepository.findAll().stream()
+            .filter(txn -> txn.isCredit() && !txn.getIsReversed())
+            .map(com.bansaiyai.bansaiyai.entity.SavingTransaction::getAmount)
+            .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        BigDecimal totalOutflows = savingTransactionRepository.findAll().stream()
+            .filter(txn -> txn.isDebit() && !txn.getIsReversed())
+            .map(com.bansaiyai.bansaiyai.entity.SavingTransaction::getAmount)
+            .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        // Simple Approximation if accounting isn't live
+        cashBalance = totalInflows.subtract(totalOutflows);
+      }
+
+      // 2. Calculate Total Savings (Liabilities to Members)
+      BigDecimal totalSavings = savingRepository.sumTotalSavings();
+      if (totalSavings == null) {
+        totalSavings = BigDecimal.ZERO;
+      }
+
+      // 3. Calculate Ratio
+      BigDecimal ratio = BigDecimal.ZERO;
+      String status = "UNKNOWN";
+
+      if (totalSavings.compareTo(BigDecimal.ZERO) > 0) {
+        // Ratio = Cash / Savings
+        ratio = cashBalance.divide(totalSavings, 4, RoundingMode.HALF_UP);
+
+        // 4. Determine Status based on Standard Co-op Norms (e.g. >= 10% is healthy)
+        double ratioVal = ratio.doubleValue();
+        if (ratioVal >= 0.10) {
+          status = "HEALTHY";
+        } else if (ratioVal >= 0.05) {
+          status = "CAUTION";
+        } else {
+          status = "CRITICAL"; // Less than 5% cash reserve is dangerous
+        }
+      } else {
+        status = "N/A"; // No savings means no liquidity pressure
+        ratio = BigDecimal.ONE; // 100% liquid technically if 0 debt
+      }
+
+      return new com.bansaiyai.bansaiyai.dto.dashboard.LiquidityDTO(
+          ratio,
+          status,
+          cashBalance,
+          totalSavings);
+
+    } catch (Exception e) {
+      log.error("Error calculating liquidity ratio: {}", e.getMessage());
+      return new com.bansaiyai.bansaiyai.dto.dashboard.LiquidityDTO(BigDecimal.ZERO, "ERROR", BigDecimal.ZERO,
+          BigDecimal.ZERO);
+    }
+  }
+
+  /**
+   * Calculate Portfolio At Risk (PAR) Analysis
+   * Breaks down overdue loans by age: 1-30, 31-60, 61-90, >90 days.
+   */
+  public PARAnalysisDTO calculatePARAnalysis() {
+    try {
+      LocalDate today = LocalDate.now();
+
+      // 1-30 Days Overdue: Maturity Date between today-30 and today-1
+      BigDecimal par1to30 = loanRepository.sumOutstandingBalanceByMaturityDateBetween(
+          today.minusDays(30), today.minusDays(1));
+
+      // 31-60 Days Overdue: Maturity Date between today-60 and today-31
+      BigDecimal par31to60 = loanRepository.sumOutstandingBalanceByMaturityDateBetween(
+          today.minusDays(60), today.minusDays(31));
+
+      // 61-90 Days Overdue: Maturity Date between today-90 and today-61
+      BigDecimal par61to90 = loanRepository.sumOutstandingBalanceByMaturityDateBetween(
+          today.minusDays(90), today.minusDays(61));
+
+      // >90 Days Overdue: Maturity Date before today-90
+      BigDecimal parOver90 = loanRepository.sumOutstandingBalanceByMaturityDateBefore(
+          today.minusDays(90));
+
+      // Total Portfolio (Active Loans)
+      BigDecimal totalPortfolio = loanRepository.sumOutstandingBalancesByStatuses(List.of(LoanStatus.ACTIVE));
+      if (totalPortfolio == null)
+        totalPortfolio = BigDecimal.ZERO;
+
+      // Handle nulls
+      if (par1to30 == null)
+        par1to30 = BigDecimal.ZERO;
+      if (par31to60 == null)
+        par31to60 = BigDecimal.ZERO;
+      if (par61to90 == null)
+        par61to90 = BigDecimal.ZERO;
+      if (parOver90 == null)
+        parOver90 = BigDecimal.ZERO;
+
+      // Calculate Total PAR (Sum of all overdue)
+      BigDecimal totalPar = par1to30.add(par31to60).add(par61to90).add(parOver90);
+
+      // Calculate Ratio
+      double parRatio = 0.0;
+      if (totalPortfolio.compareTo(BigDecimal.ZERO) > 0) {
+        parRatio = totalPar.divide(totalPortfolio, 4, RoundingMode.HALF_UP).multiply(BigDecimal.valueOf(100))
+            .doubleValue();
+      }
+
+      return new PARAnalysisDTO(
+          totalPortfolio,
+          par1to30,
+          par31to60,
+          par61to90,
+          parOver90,
+          parRatio);
+
+    } catch (Exception e) {
+      log.error("Error calculating PAR analysis: {}", e.getMessage());
+      return new PARAnalysisDTO(BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO,
+          0.0);
+    }
+  }
+
+  /**
+   * Get Membership Trends for the last N months
+   */
+  public MembershipTrendsDTO getMembershipTrends(int months) {
+    try {
+      List<String> labels = new ArrayList<>();
+      List<Long> newMembers = new ArrayList<>();
+      List<Long> totalMembers = new ArrayList<>();
+
+      LocalDate today = LocalDate.now();
+
+      // Iterate backwards from current month
+      for (int i = months - 1; i >= 0; i--) {
+        LocalDate date = today.minusMonths(i);
+        LocalDate startOfMonth = date.withDayOfMonth(1);
+        LocalDate endOfMonth = date.withDayOfMonth(date.lengthOfMonth());
+
+        // Label: "MMM YYYY" (e.g., "Jan 2024")
+        String label = startOfMonth.getMonth().toString().substring(0, 3) + " " + startOfMonth.getYear();
+        labels.add(label);
+
+        // New Members this month
+        long newCount = memberRepository.countByCreatedAtBetween(
+            startOfMonth.atStartOfDay(),
+            endOfMonth.atTime(23, 59, 59));
+        newMembers.add(newCount);
+
+        // Total Members at end of this month
+        long totalCount = memberRepository.countByCreatedAtBefore(
+            endOfMonth.atTime(23, 59, 59));
+        totalMembers.add(totalCount);
+      }
+
+      return new MembershipTrendsDTO(labels, newMembers, totalMembers);
+
+    } catch (Exception e) {
+      log.error("Error calculating membership trends: {}", e.getMessage());
+      return new MembershipTrendsDTO(List.of(), List.of(), List.of());
     }
   }
 
@@ -1332,7 +1530,7 @@ public class DashboardService {
     try {
       // Get current fiscal period
       com.bansaiyai.bansaiyai.dto.dashboard.FiscalPeriodDTO fiscalPeriod = getCurrentFiscalPeriod();
-      String period = fiscalPeriod.getPeriod();
+      String period = fiscalPeriod.period();
 
       // Convert period format from "MONTH YEAR" to "YYYY-MM" for database query
       String fiscalPeriodKey = convertPeriodToKey(period);
@@ -1541,7 +1739,7 @@ public class DashboardService {
     try {
       // Get current fiscal period
       com.bansaiyai.bansaiyai.dto.dashboard.FiscalPeriodDTO fiscalPeriod = getCurrentFiscalPeriod();
-      String period = fiscalPeriod.getPeriod();
+      String period = fiscalPeriod.period();
       String fiscalPeriodKey = convertPeriodToKey(period);
 
       // Get all accounting entries for the fiscal period

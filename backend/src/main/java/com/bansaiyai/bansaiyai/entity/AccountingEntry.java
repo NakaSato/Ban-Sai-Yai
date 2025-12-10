@@ -46,6 +46,9 @@ public class AccountingEntry extends BaseEntity {
     @Column(name = "reference_id")
     private Long referenceId; // ID of the related transaction
 
+    @Column(name = "reference_number", length = 50)
+    private String referenceNumber; // e.g., "JRN-123456789"
+
     // Constructors
     public AccountingEntry() {
     }
@@ -133,5 +136,13 @@ public class AccountingEntry extends BaseEntity {
 
     public void setReferenceId(Long referenceId) {
         this.referenceId = referenceId;
+    }
+
+    public String getReferenceNumber() {
+        return referenceNumber;
+    }
+
+    public void setReferenceNumber(String referenceNumber) {
+        this.referenceNumber = referenceNumber;
     }
 }

@@ -83,7 +83,7 @@ public class Property13_MemberDataIsolationTest {
                 User.Role.PRESIDENT,
                 User.Role.SECRETARY,
                 User.Role.OFFICER,
-                User.Role.ADMIN);
+                User.Role.OFFICER);
 
         return roles.flatMap(role -> Arbitraries.strings().alpha().ofMinLength(5).map(username -> {
             User user = new User();

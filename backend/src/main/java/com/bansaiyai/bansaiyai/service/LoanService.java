@@ -1,6 +1,7 @@
 package com.bansaiyai.bansaiyai.service;
 
 import com.bansaiyai.bansaiyai.dto.LoanApplicationRequest;
+import com.bansaiyai.bansaiyai.dto.LoanBalanceDTO;
 import com.bansaiyai.bansaiyai.dto.LoanResponse;
 import com.bansaiyai.bansaiyai.dto.LoanApprovalRequest;
 import com.bansaiyai.bansaiyai.entity.Loan;
@@ -34,7 +35,8 @@ public class LoanService {
   private final LoanRepository loanRepository;
   private final MemberRepository memberRepository;
   private final com.bansaiyai.bansaiyai.repository.GuarantorRepository guarantorRepository;
-
+  private final com.bansaiyai.bansaiyai.repository.LoanBalanceRepository loanBalanceRepository;
+  private final SystemConfigService systemConfigService;
   private static final BigDecimal MAX_LOAN_TO_SAVINGS_RATIO = new BigDecimal("3.0");
   private static final int MIN_TERM_MONTHS = 1;
   private static final int MAX_TERM_MONTHS = 120;
@@ -639,5 +641,33 @@ public class LoanService {
             businessLoans, personalLoans, educationLoans);
       }
     }
+  }
+
+  @Transactional(readOnly = true)
+  public List<LoanBalanceDTO> getLoanHistory(Long loanId) {
+    log.debug("Getting loan history for loan ID: {}", loanId);
+
+    // Verify loan exists
+    if (!loanRepository.existsById(loanId)) {
+      throw new ResourceNotFoundException("Loan", "id", loanId);
+    }
+
+    return loanBalanceRepository.findByLoanIdOrderByBalanceDateDesc(loanId).stream()
+        .map(this::convertToBalanceDTO)
+        .toList();
+  }
+
+  private LoanBalanceDTO convertToBalanceDTO(com.bansaiyai.bansaiyai.entity.LoanBalance balance) {
+    return LoanBalanceDTO.builder()
+        .id(balance.getId())
+        .balanceDate(balance.getBalanceDate())
+        .outstandingBalance(balance.getOutstandingBalance())
+        .principalPaid(balance.getPrincipalPaid())
+        .interestPaid(balance.getInterestPaid())
+        .penaltyPaid(balance.getPenaltyPaid())
+        .interestAccrued(balance.getInterestAccrued())
+        .isCurrent(balance.getIsCurrent())
+        .paymentCount(balance.getPaymentCount() != null ? balance.getPaymentCount().longValue() : 0L)
+        .build();
   }
 }

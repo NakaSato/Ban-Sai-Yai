@@ -1,0 +1,128 @@
+@startuml pspec-loan-review
+'===============================================
+' Process Specification - Loan Review
+' PSPEC 2.0 - Ban Sai Yai Savings Cooperative
+'===============================================
+
+skinparam backgroundColor #FFFFFF
+skinparam defaultFontName "Segoe UI, Arial"
+skinparam defaultFontSize 11
+skinparam shadowing false
+
+skinparam activity {
+    BackgroundColor #438DD5
+    BorderColor #3C7FC0
+    FontColor #FFFFFF
+    DiamondBackgroundColor #FEF3C7
+    DiamondBorderColor #F59E0B
+}
+
+skinparam activityDiamond {
+    BackgroundColor #FEF3C7
+    BorderColor #F59E0B
+    FontColor #1F2937
+}
+
+title <size:18><b>PSPEC 2.0: Loan Review</b></size>\n<size:10>Process Specification - ตรวจสอบคำขอสินเชื่อ</size>
+
+|#DDD6FE|Officer|
+|#E0E7FF|System|
+
+start
+
+|Officer|
+:Login to System;
+
+|System|
+:Display Pending Loans Queue;
+note right
+  **Filter:**
+  Status = PENDING
+  Ordered by submission date
+end note
+
+|Officer|
+:Select Loan to Review;
+
+|System|
+:Fetch Loan Details;
+note right
+  **Display:**
+  - Member information
+  - Loan details
+  - Payment history
+  - Uploaded documents
+end note
+
+|Officer|
+:Review Member Profile;
+
+:Verify Documents;
+note right
+  **Check Documents:**
+  - ID Card (บัตรประชาชน)
+  - Income proof (หลักฐานรายได้)
+  - Collateral docs (หลักประกัน)
+  - Guarantor info (ผู้ค้ำประกัน)
+end note
+
+if (Documents Complete?) then (Yes)
+    :Assess Loan Risk;
+    note right
+      **Risk Assessment:**
+      - Debt-to-income ratio
+      - Credit history
+      - Collateral value
+      - Guarantor status
+    end note
+    
+    :Add Review Notes;
+    
+    :Submit Review;
+    
+    |System|
+    :Update Loan Status;
+    note right
+      **Update:**
+      - Status: REVIEWED
+      - Reviewer ID
+      - Review timestamp
+      - Review notes
+    end note
+    
+    #D4EDDA:Review Complete;
+    note right
+      Ready for President approval
+    end note
+    
+else (No)
+    |Officer|
+    :Request Additional Documents;
+    
+    |System|
+    :Notify Member;
+    note right
+      Send email requesting
+      missing documents
+    end note
+    
+    #FFF3CD:Awaiting Documents;
+endif
+
+stop
+
+legend bottom
+  **PSPEC 2.0: Loan Review**
+  --
+  **Process ID:** PSPEC-2.0
+  **Process Name:** Review Loan Application (ตรวจสอบคำขอสินเชื่อ)
+  **Trigger:** Officer selects pending loan
+  **Input:** Pending loan application
+  **Output:** Reviewed loan ready for approval
+  **Pre-condition:** Loan status = PENDING
+  **Post-condition:** Loan status = REVIEWED
+endlegend
+
+footer <size:9>Process Specification | Ban Sai Yai Savings Cooperative</size>
+
+@enduml

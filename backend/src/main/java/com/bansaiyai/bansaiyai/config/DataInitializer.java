@@ -1,76 +1,55 @@
 package com.bansaiyai.bansaiyai.config;
 
+import com.bansaiyai.bansaiyai.entity.Member;
 import com.bansaiyai.bansaiyai.entity.User;
+import com.bansaiyai.bansaiyai.repository.MemberRepository;
 import com.bansaiyai.bansaiyai.repository.UserRepository;
 import com.bansaiyai.bansaiyai.service.RoleService;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
+import java.time.LocalDate;
+import java.util.UUID;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.support.TransactionTemplate;
+
 @Slf4j
 @Component
+@RequiredArgsConstructor
 public class DataInitializer implements CommandLineRunner {
 
-  @Autowired
-  private UserRepository userRepository;
-
-  @Autowired
-  private PasswordEncoder passwordEncoder;
-
-  @Autowired
-  private RoleService roleService;
+  private final UserRepository userRepository;
+  private final MemberRepository memberRepository;
+  private final PasswordEncoder passwordEncoder;
+  private final RoleService roleService;
+  private final PlatformTransactionManager transactionManager;
 
   @Override
   public void run(String... args) throws Exception {
     // Only run initialization if no users exist (prevent repeated runs)
+    // Register all roles in system
+    roleService.registerAllRoles();
+
+    // Create or update default users (Ensures passwords are set correctly even if
+    // seeded by migration)
+    createDefaultUsers();
+
     if (userRepository.count() == 0) {
-      log.info("Starting data initialization - no users found in database");
-
-      // Register all roles in system
-      roleService.registerAllRoles();
-
-      // Create default users for each role
-      createDefaultUsers();
-
+      log.info("Starting data initialization - no users found in database (Legacy check)");
+      // createDefaultUsers() already ran
       log.info("Data initialization completed");
     } else {
-      log.info("Skipping data initialization - {} users already exist", userRepository.count());
+      log.info("Users exist in database. Default users checked/updated.");
+
+      // Ensure member profile exists
+      userRepository.findByUsername("member").ifPresent(user -> createMemberProfile(user.getId()));
     }
   }
 
   private void createDefaultUsers() {
-    // Create or update ADMIN user
-    userRepository.findByUsername("admin").ifPresentOrElse(
-        existingUser -> {
-          existingUser.setPassword(passwordEncoder.encode("admin123"));
-          existingUser.setAccountNonLocked(true);
-          existingUser.setEnabled(true);
-          existingUser.setLoginAttempts(0);
-          existingUser.setLockedUntil(null);
-          userRepository.save(existingUser);
-          log.info("Admin user password reset to: admin123");
-        },
-        () -> {
-          User admin = User.builder()
-              .username("admin")
-              .email("admin@bansaiyai.com")
-              .password(passwordEncoder.encode("admin123"))
-              .firstName("System")
-              .lastName("Administrator")
-              .phoneNumber("0000000001")
-              .role(User.Role.ADMIN)
-              .enabled(true)
-              .accountNonExpired(true)
-              .accountNonLocked(true)
-              .credentialsNonExpired(true)
-              .emailVerified(true)
-              .loginAttempts(0)
-              .build();
-          userRepository.save(admin);
-          log.info("Default admin user created with username: admin and password: admin123");
-        });
 
     // Create or update PRESIDENT user
     userRepository.findByUsername("president").ifPresentOrElse(
@@ -175,6 +154,7 @@ public class DataInitializer implements CommandLineRunner {
           existingUser.setLockedUntil(null);
           userRepository.save(existingUser);
           log.info("Member user password reset to: member123");
+          createMemberProfile(existingUser.getId());
         },
         () -> {
           User member = User.builder()
@@ -194,8 +174,41 @@ public class DataInitializer implements CommandLineRunner {
               .build();
           userRepository.save(member);
           log.info("Default member user created with username: member and password: member123");
+          createMemberProfile(member.getId());
         });
 
     log.info("All default user accounts initialization completed");
+  }
+
+  public void createMemberProfile(Long userId) {
+    new TransactionTemplate(transactionManager).execute(status -> {
+      userRepository.findById(userId).ifPresent(managedUser -> {
+        if (memberRepository.findByUserId(userId).isEmpty()) {
+          Member member = Member.builder()
+              .user(managedUser)
+              // Safe fallbacks for missing user details
+              .name((managedUser.getFirstName() != null ? managedUser.getFirstName() : "Member") + " " +
+                  (managedUser.getLastName() != null ? managedUser.getLastName() : "User"))
+              .idCard("1234567890123") // Dummy valid ID card
+              .dateOfBirth(LocalDate.of(1990, 1, 1))
+              .address("123 Default Ban Sai Yai Address")
+              .phone(managedUser.getPhoneNumber() != null ? managedUser.getPhoneNumber() : "0812345678")
+              .email(managedUser.getEmail())
+              .occupation("Farmer")
+              .monthlyIncome(new java.math.BigDecimal("15000.00"))
+              .maritalStatus("Married")
+              .spouseName("Mrs. Member User")
+              .numberOfChildren(2)
+              .registrationDate(LocalDate.now())
+              .isActive(true)
+              .uuid(UUID.randomUUID())
+              .build();
+
+          memberRepository.save(member);
+          log.info("Detailed Member profile created for user: {}", managedUser.getUsername());
+        }
+      });
+      return null;
+    });
   }
 }

@@ -1,28 +1,28 @@
 -- Create accounting table for double-entry bookkeeping
 CREATE TABLE IF NOT EXISTS accounting (
-    id BIGINT AUTO_INCREMENT PRIMARY KEY,
-    fiscal_period VARCHAR(20) NOT NULL COMMENT 'Fiscal period in YYYY-MM format',
-    account_code VARCHAR(10) NOT NULL COMMENT 'Account code (e.g., 1001 for Cash)',
-    account_name VARCHAR(100) COMMENT 'Account name',
-    debit DECIMAL(15, 2) DEFAULT 0.00 COMMENT 'Debit amount',
-    credit DECIMAL(15, 2) DEFAULT 0.00 COMMENT 'Credit amount',
-    transaction_date DATE COMMENT 'Date of the transaction',
-    description VARCHAR(500) COMMENT 'Transaction description',
-    reference_type VARCHAR(50) COMMENT 'Type of related transaction (LOAN, SAVINGS, PAYMENT)',
-    reference_id BIGINT COMMENT 'ID of the related transaction',
+    id SERIAL PRIMARY KEY,
+    fiscal_period VARCHAR(20) NOT NULL,
+    account_code VARCHAR(10) NOT NULL,
+    account_name VARCHAR(100),
+    debit DECIMAL(15, 2) DEFAULT 0.00,
+    credit DECIMAL(15, 2) DEFAULT 0.00,
+    transaction_date DATE,
+    description VARCHAR(500),
+    reference_type VARCHAR(50),
+    reference_id BIGINT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     created_by VARCHAR(100),
     updated_by VARCHAR(100)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+);
 
 -- Create indices for performance optimization
-CREATE INDEX idx_accounting_fiscal_period ON accounting(fiscal_period);
-CREATE INDEX idx_accounting_debit ON accounting(debit);
-CREATE INDEX idx_accounting_credit ON accounting(credit);
-CREATE INDEX idx_accounting_account_code ON accounting(account_code);
-CREATE INDEX idx_accounting_transaction_date ON accounting(transaction_date);
-CREATE INDEX idx_accounting_reference ON accounting(reference_type, reference_id);
+CREATE INDEX IF NOT EXISTS idx_accounting_fiscal_period ON accounting(fiscal_period);
+CREATE INDEX IF NOT EXISTS idx_accounting_debit ON accounting(debit);
+CREATE INDEX IF NOT EXISTS idx_accounting_credit ON accounting(credit);
+CREATE INDEX IF NOT EXISTS idx_accounting_account_code ON accounting(account_code);
+CREATE INDEX IF NOT EXISTS idx_accounting_transaction_date ON accounting(transaction_date);
+CREATE INDEX IF NOT EXISTS idx_accounting_reference ON accounting(reference_type, reference_id);
 
 -- Insert sample accounting entries for testing
 INSERT INTO accounting (fiscal_period, account_code, account_name, debit, credit, transaction_date, description, reference_type, created_by) VALUES
@@ -37,3 +37,4 @@ INSERT INTO accounting (fiscal_period, account_code, account_name, debit, credit
 ('2023-12', '4001', 'Interest Income', 0.00, 500.00, '2023-12-15', 'Loan repayment - interest', 'PAYMENT', 'system');
 
 COMMIT;
+

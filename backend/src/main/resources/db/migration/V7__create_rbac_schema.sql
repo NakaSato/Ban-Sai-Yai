@@ -1,18 +1,19 @@
 -- ============================================================================
 -- RBAC Security System Migration
 -- Creates roles, permissions, role_permissions tables and extends existing tables
+-- PostgreSQL Compatible
 -- ============================================================================
 
 -- ============================================================================
 -- 1. Create roles table
 -- ============================================================================
 CREATE TABLE IF NOT EXISTS roles (
-    role_id INT AUTO_INCREMENT PRIMARY KEY,
+    role_id SERIAL PRIMARY KEY,
     role_name VARCHAR(50) NOT NULL UNIQUE,
     description TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT chk_role_name CHECK (role_name IN ('ROLE_OFFICER', 'ROLE_SECRETARY', 'ROLE_PRESIDENT', 'ROLE_MEMBER'))
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+);
 
 -- Seed roles data
 INSERT INTO roles (role_name, description) VALUES
@@ -25,13 +26,14 @@ INSERT INTO roles (role_name, description) VALUES
 -- 2. Create permissions table
 -- ============================================================================
 CREATE TABLE IF NOT EXISTS permissions (
-    perm_id INT AUTO_INCREMENT PRIMARY KEY,
+    perm_id SERIAL PRIMARY KEY,
     perm_slug VARCHAR(50) NOT NULL UNIQUE,
     module VARCHAR(50) NOT NULL,
     description TEXT,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    INDEX idx_module (module)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX idx_module ON permissions(module);
 
 -- Seed permissions data
 INSERT INTO permissions (perm_slug, module, description) VALUES
@@ -83,10 +85,11 @@ CREATE TABLE IF NOT EXISTS role_permissions (
     perm_id INT NOT NULL,
     PRIMARY KEY (role_id, perm_id),
     FOREIGN KEY (role_id) REFERENCES roles(role_id) ON DELETE CASCADE,
-    FOREIGN KEY (perm_id) REFERENCES permissions(perm_id) ON DELETE CASCADE,
-    INDEX idx_role_id (role_id),
-    INDEX idx_perm_id (perm_id)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+    FOREIGN KEY (perm_id) REFERENCES permissions(perm_id) ON DELETE CASCADE
+);
+
+CREATE INDEX idx_role_id ON role_permissions(role_id);
+CREATE INDEX idx_perm_id ON role_permissions(perm_id);
 
 -- ============================================================================
 -- 4. Seed role_permissions mappings
@@ -159,21 +162,21 @@ AND p.perm_slug IN (
 -- 5. Extend users table with role_id and status
 -- ============================================================================
 ALTER TABLE users
-ADD COLUMN role_id INT AFTER role,
-ADD COLUMN status ENUM('Active', 'Suspended') DEFAULT 'Active' AFTER role_id,
-ADD COLUMN deleted_at TIMESTAMP NULL AFTER status,
+ADD COLUMN IF NOT EXISTS role_id INT,
+ADD COLUMN IF NOT EXISTS status VARCHAR(20) DEFAULT 'Active',
+ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMP NULL,
 ADD CONSTRAINT fk_users_role FOREIGN KEY (role_id) REFERENCES roles(role_id);
 
 -- Create indexes for performance
-CREATE INDEX idx_users_role_id ON users(role_id);
-CREATE INDEX idx_users_status ON users(status);
-CREATE INDEX idx_users_deleted_at ON users(deleted_at);
+CREATE INDEX IF NOT EXISTS idx_users_role_id ON users(role_id);
+CREATE INDEX IF NOT EXISTS idx_users_status ON users(status);
+CREATE INDEX IF NOT EXISTS idx_users_deleted_at ON users(deleted_at);
 
 -- ============================================================================
 -- 6. Create system_audit_log table
 -- ============================================================================
 CREATE TABLE IF NOT EXISTS system_audit_log (
-    log_id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    log_id BIGSERIAL PRIMARY KEY,
     user_id BIGINT,
     action VARCHAR(100) NOT NULL,
     entity_type VARCHAR(50),
@@ -182,37 +185,41 @@ CREATE TABLE IF NOT EXISTS system_audit_log (
     old_values JSON,
     new_values JSON,
     timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL,
-    INDEX idx_audit_user (user_id),
-    INDEX idx_audit_timestamp (timestamp),
-    INDEX idx_audit_action (action),
-    INDEX idx_audit_entity (entity_type, entity_id)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
+);
+
+CREATE INDEX idx_audit_user ON system_audit_log(user_id);
+CREATE INDEX idx_audit_timestamp ON system_audit_log(timestamp);
+CREATE INDEX idx_audit_action ON system_audit_log(action);
+CREATE INDEX idx_audit_entity ON system_audit_log(entity_type, entity_id);
 
 -- ============================================================================
 -- 7. Create cash_reconciliations table
 -- ============================================================================
+CREATE TYPE reconciliation_status_enum AS ENUM ('PENDING', 'APPROVED', 'REJECTED');
+
 CREATE TABLE IF NOT EXISTS cash_reconciliations (
-    reconciliation_id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    reconciliation_id BIGSERIAL PRIMARY KEY,
     date DATE NOT NULL,
     officer_id BIGINT NOT NULL,
     physical_count DECIMAL(15, 2) NOT NULL,
     database_balance DECIMAL(15, 2) NOT NULL,
     variance DECIMAL(15, 2) NOT NULL,
-    status ENUM('PENDING', 'APPROVED', 'REJECTED') DEFAULT 'PENDING',
+    status reconciliation_status_enum DEFAULT 'PENDING',
     secretary_id BIGINT,
     secretary_notes TEXT,
     officer_notes TEXT,
     approved_at TIMESTAMP NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (officer_id) REFERENCES users(id) ON DELETE RESTRICT,
-    FOREIGN KEY (secretary_id) REFERENCES users(id) ON DELETE SET NULL,
-    INDEX idx_reconciliation_date (date),
-    INDEX idx_reconciliation_status (status),
-    INDEX idx_reconciliation_officer (officer_id),
-    INDEX idx_reconciliation_secretary (secretary_id)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+    FOREIGN KEY (secretary_id) REFERENCES users(id) ON DELETE SET NULL
+);
+
+CREATE INDEX idx_reconciliation_date ON cash_reconciliations(date);
+CREATE INDEX idx_reconciliation_status ON cash_reconciliations(status);
+CREATE INDEX idx_reconciliation_officer ON cash_reconciliations(officer_id);
+CREATE INDEX idx_reconciliation_secretary ON cash_reconciliations(secretary_id);
 
 -- ============================================================================
 -- 8. Extend login_attempts table with locked_until column
@@ -222,61 +229,49 @@ CREATE TABLE IF NOT EXISTS cash_reconciliations (
 -- No changes needed to login_attempts table
 
 -- ============================================================================
--- 9. Create guarantor table for relationship-based access control
+-- 9. Guarantor table already exists from V1 migration
 -- ============================================================================
-CREATE TABLE IF NOT EXISTS guarantors (
-    guarantor_id BIGINT AUTO_INCREMENT PRIMARY KEY,
-    loan_id BIGINT NOT NULL,
-    member_id BIGINT NOT NULL,
-    guarantee_amount DECIMAL(15, 2),
-    status ENUM('ACTIVE', 'RELEASED', 'DEFAULTED') DEFAULT 'ACTIVE',
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    FOREIGN KEY (loan_id) REFERENCES loan(id) ON DELETE CASCADE,
-    FOREIGN KEY (member_id) REFERENCES member(id) ON DELETE CASCADE,
-    UNIQUE KEY uk_loan_member (loan_id, member_id),
-    INDEX idx_guarantor_loan (loan_id),
-    INDEX idx_guarantor_member (member_id),
-    INDEX idx_guarantor_status (status)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+-- No changes needed
 
 -- ============================================================================
 -- 10. Add transaction creator and approver tracking
 -- ============================================================================
+
 -- Extend saving_transaction table
 ALTER TABLE saving_transaction
-ADD COLUMN creator_user_id BIGINT AFTER updated_by,
-ADD COLUMN approver_user_id BIGINT AFTER creator_user_id,
-ADD COLUMN approval_status ENUM('PENDING', 'APPROVED', 'REJECTED') DEFAULT 'APPROVED' AFTER approver_user_id,
-ADD COLUMN voided_at TIMESTAMP NULL AFTER approval_status,
+ADD COLUMN IF NOT EXISTS creator_user_id BIGINT,
+ADD COLUMN IF NOT EXISTS approver_user_id BIGINT,
+ADD COLUMN IF NOT EXISTS approval_status approval_status_enum DEFAULT 'APPROVED',
+ADD COLUMN IF NOT EXISTS voided_at TIMESTAMP NULL,
 ADD CONSTRAINT fk_saving_transaction_creator FOREIGN KEY (creator_user_id) REFERENCES users(id) ON DELETE SET NULL,
 ADD CONSTRAINT fk_saving_transaction_approver FOREIGN KEY (approver_user_id) REFERENCES users(id) ON DELETE SET NULL;
 
-CREATE INDEX idx_saving_transaction_creator ON saving_transaction(creator_user_id);
-CREATE INDEX idx_saving_transaction_approver ON saving_transaction(approver_user_id);
-CREATE INDEX idx_saving_transaction_approval_status ON saving_transaction(approval_status);
+CREATE INDEX IF NOT EXISTS idx_saving_transaction_creator ON saving_transaction(creator_user_id);
+CREATE INDEX IF NOT EXISTS idx_saving_transaction_approver ON saving_transaction(approver_user_id);
+CREATE INDEX IF NOT EXISTS idx_saving_transaction_approval_status ON saving_transaction(approval_status);
 
 -- Extend payments table
 ALTER TABLE payments
-ADD COLUMN creator_user_id BIGINT AFTER updated_by,
-ADD COLUMN approver_user_id BIGINT AFTER creator_user_id,
-ADD COLUMN approval_status ENUM('PENDING', 'APPROVED', 'REJECTED') DEFAULT 'APPROVED' AFTER approver_user_id,
-ADD COLUMN voided_at TIMESTAMP NULL AFTER approval_status,
+ADD COLUMN IF NOT EXISTS creator_user_id BIGINT,
+ADD COLUMN IF NOT EXISTS approver_user_id BIGINT,
+ADD COLUMN IF NOT EXISTS approval_status approval_status_enum DEFAULT 'APPROVED',
+ADD COLUMN IF NOT EXISTS voided_at TIMESTAMP NULL,
 ADD CONSTRAINT fk_payments_creator FOREIGN KEY (creator_user_id) REFERENCES users(id) ON DELETE SET NULL,
 ADD CONSTRAINT fk_payments_approver FOREIGN KEY (approver_user_id) REFERENCES users(id) ON DELETE SET NULL;
 
-CREATE INDEX idx_payments_creator ON payments(creator_user_id);
-CREATE INDEX idx_payments_approver ON payments(approver_user_id);
-CREATE INDEX idx_payments_approval_status ON payments(approval_status);
+CREATE INDEX IF NOT EXISTS idx_payments_creator ON payments(creator_user_id);
+CREATE INDEX IF NOT EXISTS idx_payments_approver ON payments(approver_user_id);
+CREATE INDEX IF NOT EXISTS idx_payments_approval_status ON payments(approval_status);
 
 -- Extend loan table for approval tracking
 ALTER TABLE loan
-ADD COLUMN approver_user_id BIGINT AFTER updated_by,
+ADD COLUMN IF NOT EXISTS approver_user_id BIGINT,
 ADD CONSTRAINT fk_loan_approver FOREIGN KEY (approver_user_id) REFERENCES users(id) ON DELETE SET NULL;
 
-CREATE INDEX idx_loan_approver ON loan(approver_user_id);
+CREATE INDEX IF NOT EXISTS idx_loan_approver ON loan(approver_user_id);
 
 -- ============================================================================
 -- COMMIT TRANSACTION
 -- ============================================================================
 COMMIT;
+

@@ -162,7 +162,7 @@ public class RolePermissionService {
      * database
      * via migration scripts. This method only ensures the mappings are correct.
      */
-    @PostConstruct
+    // @PostConstruct - Disabled to allow DataInitializer to run first
     public void initializeDefaultPermissions() {
         log.info("Initializing default role-permission mappings");
 

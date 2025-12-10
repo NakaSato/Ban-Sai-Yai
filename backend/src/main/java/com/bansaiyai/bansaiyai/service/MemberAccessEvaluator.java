@@ -21,8 +21,7 @@ public class MemberAccessEvaluator {
         // Admins and Officers can view all members
         if (user.getRole() == User.Role.PRESIDENT ||
                 user.getRole() == User.Role.SECRETARY ||
-                user.getRole() == User.Role.OFFICER ||
-                user.getRole() == User.Role.ADMIN) {
+                user.getRole() == User.Role.OFFICER) {
             return true;
         }
 

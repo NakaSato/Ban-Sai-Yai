@@ -59,10 +59,10 @@ public class DividendService {
             // 1. Share Capital Dividend
             // Logic: Get share capital from SAVINGS account (assuming 1 main savings per
             // member)
-            BigDecimal shareCapital = BigDecimal.ZERO;
-            SavingAccount saving = savingRepository.findFirstByMemberIdAndIsActiveTrue(member.getId()).orElse(null);
-            if (saving != null && saving.getShareCapital() != null) {
-                shareCapital = saving.getShareCapital();
+            // 1. Share Capital Dividend
+            BigDecimal shareCapital = member.getShareCapital();
+            if (shareCapital == null) {
+                shareCapital = BigDecimal.ZERO;
             }
 
             BigDecimal divAmount = shareCapital.multiply(dividendRate).divide(new BigDecimal("100"), 2,

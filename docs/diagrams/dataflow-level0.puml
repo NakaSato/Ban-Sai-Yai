@@ -1,0 +1,93 @@
+@startuml dataflow-level0
+'===============================================
+' DFD Level 0: Context Diagram
+' Clean Centered Layout
+'===============================================
+
+!define PRIMARY #0D47A1
+!define SECONDARY #1565C0
+!define GRAY #607D8B
+!define GRAY_LIGHT #ECEFF1
+!define WHITE #FFFFFF
+!define TEXT_LIGHT #FFFFFF
+
+skinparam backgroundColor WHITE
+skinparam defaultFontName "Segoe UI, Roboto, Arial, sans-serif"
+skinparam defaultFontSize 12
+skinparam shadowing false
+skinparam ArrowColor #546E7A
+skinparam ArrowThickness 2
+
+title <font size=20><b>DFD Level 0: Context Diagram</b></font>\n<font size=12 color=#607D8B>Ban Sai Yai Savings Group</font>
+
+' ========================================
+' STYLING
+' ========================================
+skinparam rectangle<<User>> {
+    BackgroundColor PRIMARY
+    FontColor TEXT_LIGHT
+    BorderColor PRIMARY
+    RoundCorner 10
+}
+
+skinparam rectangle<<System>> {
+    BackgroundColor SECONDARY
+    FontColor TEXT_LIGHT
+    BorderColor SECONDARY
+    RoundCorner 16
+}
+
+skinparam rectangle<<External>> {
+    BackgroundColor GRAY_LIGHT
+    FontColor #37474F
+    BorderColor GRAY
+    BorderStyle dashed
+    RoundCorner 8
+}
+
+' ========================================
+' TOP ROW: Users
+' ========================================
+together {
+    rectangle "**President**\n<size:9>Approvals</size>" <<User>> as E1
+    rectangle "**Secretary**\n<size:9>Accounting</size>" <<User>> as E2
+    rectangle "**Officer**\n<size:9>Operations</size>" <<User>> as E3
+    rectangle "**Member**\n<size:9>Self-service</size>" <<User>> as E4
+}
+
+' ========================================
+' CENTER: Main System
+' ========================================
+rectangle "**0**\n\n<font size=14><b>Ban Sai Yai</b></font>\n<font size=11>Financial System</font>" <<System>> as SYS
+
+' ========================================
+' BOTTOM ROW: External Systems
+' ========================================
+together {
+    rectangle "**PostgreSQL**\n<size:9>Database</size>" <<External>> as DB
+    rectangle "**Email**\n<size:9>SMTP</size>" <<External>> as EX1
+    rectangle "**Files**\n<size:9>Storage</size>" <<External>> as EX2
+}
+
+' ========================================
+' FLOWS
+' ========================================
+E1 -down-> SYS
+E2 -down-> SYS
+E3 -down-> SYS
+E4 -down-> SYS
+
+SYS -down-> DB
+SYS -down-> EX1
+SYS -down-> EX2
+
+@enduml
+' ========================================
+legend bottom
+  |<#0D47A1>     | **External Entity** (User/Actor) |
+  |<#1565C0>     | **Process** (System) |
+  |<#ECEFF1>     | **External System** |
+  | ——→ | Data Flow |
+endlegend
+
+@enduml

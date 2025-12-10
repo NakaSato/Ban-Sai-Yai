@@ -40,7 +40,12 @@ public interface MemberRepository extends JpaRepository<Member, Long> {
   @Query("SELECT m FROM Member m WHERE m.user.id = :userId")
   Optional<Member> findByUserId(@Param("userId") Long userId);
 
+  @Query("SELECT m FROM Member m WHERE m.user.username = :username")
+  Optional<Member> findByUserUsername(@Param("username") String username);
+
   long countByCreatedAtBetween(java.time.LocalDateTime startDate, java.time.LocalDateTime endDate);
+
+  long countByCreatedAtBefore(java.time.LocalDateTime date);
 
   List<Member> findByIsActive(boolean isActive);
 
@@ -65,7 +70,12 @@ public interface MemberRepository extends JpaRepository<Member, Long> {
 
   boolean existsByIdCard(String idCard);
 
+  Optional<Member> findByIdCard(String idCard);
+
   List<Member> findTop10ByOrderByCreatedAtDesc();
 
   List<Member> findByIsActiveTrue();
+
+  @Query("SELECT COALESCE(SUM(m.shareCapital), 0) FROM Member m WHERE m.isActive = true")
+  java.math.BigDecimal sumTotalShareCapital();
 }

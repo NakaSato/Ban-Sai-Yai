@@ -25,7 +25,7 @@ public class RoleService {
    */
   public List<User.Role> getRoleHierarchy() {
     return Arrays.asList(
-        User.Role.ADMIN,
+
         User.Role.PRESIDENT,
         User.Role.SECRETARY,
         User.Role.OFFICER,
@@ -39,15 +39,7 @@ public class RoleService {
     Set<String> permissions = new HashSet<>();
 
     switch (role) {
-      case ADMIN:
-        permissions.addAll(Set.of(
-            "MEMBER_READ", "MEMBER_WRITE", "MEMBER_DELETE",
-            "LOAN_READ", "LOAN_WRITE", "LOAN_DELETE", "LOAN_APPROVE",
-            "SAVINGS_READ", "SAVINGS_WRITE", "SAVINGS_DELETE",
-            "PAYMENT_READ", "PAYMENT_WRITE", "PAYMENT_DELETE",
-            "REPORT_READ", "REPORT_WRITE", "ADMIN_READ", "ADMIN_WRITE",
-            "SYSTEM_CONFIG", "USER_MANAGEMENT"));
-        break;
+
       case PRESIDENT:
         permissions.addAll(Set.of(
             "MEMBER_READ", "MEMBER_WRITE", "MEMBER_DELETE",
@@ -88,8 +80,7 @@ public class RoleService {
    */
   public String getRoleDescription(User.Role role) {
     switch (role) {
-      case ADMIN:
-        return "System Administrator - Full system access and user management";
+
       case PRESIDENT:
         return "President - Organization leadership with full operational access";
       case SECRETARY:
@@ -160,8 +151,8 @@ public class RoleService {
    * Validate role assignment
    */
   public boolean isValidRoleAssignment(User.Role currentRole, User.Role targetRole) {
-    // Only ADMIN and PRESIDENT can assign any role
-    if (currentRole == User.Role.ADMIN || currentRole == User.Role.PRESIDENT) {
+    // Only PRESIDENT can assign any role
+    if (currentRole == User.Role.PRESIDENT) {
       return true;
     }
 

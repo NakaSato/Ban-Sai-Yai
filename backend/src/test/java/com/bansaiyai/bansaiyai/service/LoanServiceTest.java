@@ -43,6 +43,11 @@ class LoanServiceTest {
   @Mock
   private MemberRepository memberRepository;
 
+  @Mock
+  private com.bansaiyai.bansaiyai.repository.LoanBalanceRepository loanBalanceRepository;
+  @Mock
+  private com.bansaiyai.bansaiyai.service.SystemConfigService systemConfigService;
+
   @InjectMocks
   private LoanService loanService;
 
@@ -128,6 +133,8 @@ class LoanServiceTest {
         return saved;
       });
 
+      when(systemConfigService.getBigDecimal(eq("LOAN_INTEREST_RATE_GENERAL"), any()))
+          .thenReturn(new BigDecimal("12.0"));
       // Act
       LoanResponse response = loanService.createLoanApplication(validRequest, "admin");
 
@@ -399,6 +406,9 @@ class LoanServiceTest {
         saved.setId(1L);
         return saved;
       });
+
+      when(systemConfigService.getBigDecimal(eq("LOAN_INTEREST_RATE_BUSINESS"), any()))
+          .thenReturn(new BigDecimal("12.0"));
 
       // Test BUSINESS loan type
       LoanApplicationRequest businessLoan = LoanApplicationRequest.builder()

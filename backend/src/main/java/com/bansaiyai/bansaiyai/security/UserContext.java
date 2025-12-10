@@ -65,4 +65,55 @@ public class UserContext {
             return false;
         }
     }
+
+    /**
+     * Check if the current user has the specified role.
+     * 
+     * @param roleName The role name to check (e.g., "PRESIDENT", "SECRETARY")
+     * @return true if the user has the specified role
+     */
+    public boolean hasRole(String roleName) {
+        try {
+            User user = getCurrentUser();
+            if (user == null || user.getRole() == null) {
+                return false;
+            }
+            return user.getRole().name().equals(roleName) ||
+                    user.getRole().name().equals("ROLE_" + roleName) ||
+                    ("ROLE_" + user.getRole().name()).equals(roleName);
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    /**
+     * Get the member ID of the currently authenticated user.
+     * 
+     * @return the member ID, or null if not available
+     */
+    public Long getCurrentMemberId() {
+        try {
+            User user = getCurrentUser();
+            if (user != null && user.getMember() != null) {
+                return user.getMember().getId();
+            }
+            return null;
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    /**
+     * Get the user ID of the currently authenticated user.
+     * 
+     * @return the user ID, or null if not available
+     */
+    public Long getCurrentUserId() {
+        try {
+            User user = getCurrentUser();
+            return user != null ? user.getId() : null;
+        } catch (Exception e) {
+            return null;
+        }
+    }
 }

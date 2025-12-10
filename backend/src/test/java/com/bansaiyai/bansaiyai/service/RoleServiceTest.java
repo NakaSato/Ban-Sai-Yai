@@ -25,8 +25,7 @@ public class RoleServiceTest {
     List<User.Role> roles = roleService.getAllRoles();
 
     assertNotNull(roles);
-    assertEquals(5, roles.size());
-    assertTrue(roles.contains(User.Role.ADMIN));
+    assertEquals(4, roles.size());
     assertTrue(roles.contains(User.Role.PRESIDENT));
     assertTrue(roles.contains(User.Role.SECRETARY));
     assertTrue(roles.contains(User.Role.OFFICER));
@@ -38,22 +37,15 @@ public class RoleServiceTest {
     List<User.Role> hierarchy = roleService.getRoleHierarchy();
 
     assertNotNull(hierarchy);
-    assertEquals(5, hierarchy.size());
-    assertEquals(User.Role.ADMIN, hierarchy.get(0));
-    assertEquals(User.Role.PRESIDENT, hierarchy.get(1));
-    assertEquals(User.Role.SECRETARY, hierarchy.get(2));
-    assertEquals(User.Role.OFFICER, hierarchy.get(3));
-    assertEquals(User.Role.MEMBER, hierarchy.get(4));
+    assertEquals(4, hierarchy.size());
+    assertEquals(User.Role.PRESIDENT, hierarchy.get(0));
+    assertEquals(User.Role.SECRETARY, hierarchy.get(1));
+    assertEquals(User.Role.OFFICER, hierarchy.get(2));
+    assertEquals(User.Role.MEMBER, hierarchy.get(3));
   }
 
   @Test
   void testGetRolePermissions() {
-    // Test ADMIN permissions
-    Set<String> adminPermissions = roleService.getRolePermissions(User.Role.ADMIN);
-    assertNotNull(adminPermissions);
-    assertTrue(adminPermissions.contains("SYSTEM_CONFIG"));
-    assertTrue(adminPermissions.contains("USER_MANAGEMENT"));
-    assertTrue(adminPermissions.contains("MEMBER_READ"));
 
     // Test PRESIDENT permissions
     Set<String> presidentPermissions = roleService.getRolePermissions(User.Role.PRESIDENT);
@@ -72,8 +64,7 @@ public class RoleServiceTest {
 
   @Test
   void testGetRoleDescription() {
-    assertEquals("System Administrator - Full system access and user management",
-        roleService.getRoleDescription(User.Role.ADMIN));
+
     assertEquals("President - Organization leadership with full operational access",
         roleService.getRoleDescription(User.Role.PRESIDENT));
     assertEquals("Secretary - Record keeping and reporting responsibilities",
@@ -86,15 +77,12 @@ public class RoleServiceTest {
 
   @Test
   void testCanManageRole() {
-    // ADMIN can manage all roles
-    assertTrue(roleService.canManageRole(User.Role.ADMIN, User.Role.PRESIDENT));
-    assertTrue(roleService.canManageRole(User.Role.ADMIN, User.Role.MEMBER));
 
     // PRESIDENT can manage lower roles
     assertTrue(roleService.canManageRole(User.Role.PRESIDENT, User.Role.SECRETARY));
     assertTrue(roleService.canManageRole(User.Role.PRESIDENT, User.Role.OFFICER));
     assertTrue(roleService.canManageRole(User.Role.PRESIDENT, User.Role.MEMBER));
-    assertFalse(roleService.canManageRole(User.Role.PRESIDENT, User.Role.ADMIN));
+    assertFalse(roleService.canManageRole(User.Role.PRESIDENT, User.Role.PRESIDENT));
 
     // MEMBER cannot manage any roles
     assertFalse(roleService.canManageRole(User.Role.MEMBER, User.Role.OFFICER));
@@ -117,27 +105,17 @@ public class RoleServiceTest {
   void testGetRolesWithPermission() {
     // Test permission that multiple roles have
     List<User.Role> memberReadRoles = roleService.getRolesWithPermission("MEMBER_READ");
-    assertTrue(memberReadRoles.contains(User.Role.ADMIN));
     assertTrue(memberReadRoles.contains(User.Role.PRESIDENT));
     assertTrue(memberReadRoles.contains(User.Role.SECRETARY));
     assertTrue(memberReadRoles.contains(User.Role.OFFICER));
     assertFalse(memberReadRoles.contains(User.Role.MEMBER));
-
-    // Test permission that only ADMIN has
-    List<User.Role> systemConfigRoles = roleService.getRolesWithPermission("SYSTEM_CONFIG");
-    assertEquals(1, systemConfigRoles.size());
-    assertEquals(User.Role.ADMIN, systemConfigRoles.get(0));
   }
 
   @Test
   void testIsValidRoleAssignment() {
-    // ADMIN can assign any role
-    assertTrue(roleService.isValidRoleAssignment(User.Role.ADMIN, User.Role.ADMIN));
-    assertTrue(roleService.isValidRoleAssignment(User.Role.ADMIN, User.Role.MEMBER));
-
-    // PRESIDENT can assign any role
+    // PRESIDENT can assign any role (except themselves potentially, but validation
+    // logic might differ)
     assertTrue(roleService.isValidRoleAssignment(User.Role.PRESIDENT, User.Role.SECRETARY));
-    assertTrue(roleService.isValidRoleAssignment(User.Role.PRESIDENT, User.Role.ADMIN));
 
     // SECRETARY can assign OFFICER and MEMBER
     assertTrue(roleService.isValidRoleAssignment(User.Role.SECRETARY, User.Role.OFFICER));

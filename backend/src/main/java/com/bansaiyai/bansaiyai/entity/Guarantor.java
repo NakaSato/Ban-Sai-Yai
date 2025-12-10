@@ -22,8 +22,8 @@ import java.time.LocalDate;
 @Entity
 @Table(name = "guarantor", indexes = {
     @Index(name = "idx_guarantor_number", columnList = "guarantorNumber"),
-    @Index(name = "idx_loan_id", columnList = "loanId"),
-    @Index(name = "idx_member_id", columnList = "memberId")
+    @Index(name = "idx_guarantor_loan_id", columnList = "loanId"),
+    @Index(name = "idx_guarantor_member_id", columnList = "memberId")
 })
 @EntityListeners(AuditingEntityListener.class)
 public class Guarantor extends BaseEntity {

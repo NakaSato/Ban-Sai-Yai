@@ -2,7 +2,12 @@ package com.bansaiyai.bansaiyai.controller;
 
 import com.bansaiyai.bansaiyai.dto.PaymentRequest;
 import com.bansaiyai.bansaiyai.dto.PaymentResponse;
+import com.bansaiyai.bansaiyai.dto.CompositePaymentRequest;
+import com.bansaiyai.bansaiyai.dto.CompositeTransactionResponse;
 import com.bansaiyai.bansaiyai.service.PaymentService;
+import com.bansaiyai.bansaiyai.service.TransactionService;
+import com.bansaiyai.bansaiyai.repository.UserRepository;
+import com.bansaiyai.bansaiyai.entity.User;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -30,13 +35,15 @@ import java.util.Map;
 public class PaymentController {
 
   private final PaymentService paymentService;
+  private final TransactionService transactionService;
+  private final UserRepository userRepository;
   private final com.bansaiyai.bansaiyai.security.UserContext userContext;
 
   /**
    * Create a new payment
    */
   @PostMapping
-  @PreAuthorize("hasRole('OFFICER') or hasRole('ADMIN')")
+  @PreAuthorize("hasRole('OFFICER')")
   public ResponseEntity<PaymentResponse> createPayment(@Valid @RequestBody PaymentRequest request) {
     try {
       String currentUser = userContext.getCurrentUsername();
@@ -48,11 +55,41 @@ public class PaymentController {
     }
   }
 
+  @PostMapping("/process")
+  @PreAuthorize("hasRole('OFFICER')")
+  public ResponseEntity<CompositeTransactionResponse> processCompositePaymentLegacy(
+      @Valid @RequestBody CompositePaymentRequest request) {
+    return processCompositePayment(request); // Reuse the existing logic
+  }
+
+  /**
+   * Process a composite payment (Share + Loan)
+   */
+  @PostMapping("/composite")
+  @PreAuthorize("hasRole('OFFICER')")
+  public ResponseEntity<CompositeTransactionResponse> processCompositePayment(
+      @Valid @RequestBody CompositePaymentRequest request) {
+    try {
+      String username = userContext.getCurrentUsername();
+      User user = userRepository.findByUsername(username)
+          .orElseThrow(() -> new RuntimeException("User not found: " + username));
+
+      CompositeTransactionResponse response = transactionService.processCompositePayment(request, user);
+      return ResponseEntity.ok(response);
+    } catch (Exception e) {
+      log.error("Error processing composite payment: {}", e.getMessage());
+      return ResponseEntity.badRequest().body(CompositeTransactionResponse.builder()
+          .status("FAILED")
+          .message(e.getMessage())
+          .build());
+    }
+  }
+
   /**
    * Get payment by ID
    */
   @GetMapping("/{id}")
-  @PreAuthorize("hasRole('OFFICER') or hasRole('ADMIN') or hasRole('PRESIDENT')")
+  @PreAuthorize("hasRole('OFFICER') or hasRole('PRESIDENT')")
   public ResponseEntity<PaymentResponse> getPayment(@PathVariable Long id) {
     try {
       PaymentResponse response = paymentService.getPayment(id);
@@ -67,7 +104,7 @@ public class PaymentController {
    * Get payment by payment number
    */
   @GetMapping("/by-number/{paymentNumber}")
-  @PreAuthorize("hasRole('OFFICER') or hasRole('ADMIN') or hasRole('PRESIDENT')")
+  @PreAuthorize("hasRole('OFFICER') or hasRole('PRESIDENT')")
   public ResponseEntity<PaymentResponse> getPaymentByNumber(@PathVariable String paymentNumber) {
     try {
       PaymentResponse response = paymentService.getPaymentByNumber(paymentNumber);
@@ -82,7 +119,7 @@ public class PaymentController {
    * Get payments by member
    */
   @GetMapping("/member/{memberId}")
-  @PreAuthorize("hasRole('OFFICER') or hasRole('ADMIN') or hasRole('PRESIDENT') or @userContext.isCurrentMember(#memberId)")
+  @PreAuthorize("hasRole('OFFICER') or hasRole('PRESIDENT') or @userContext.isCurrentMember(#memberId)")
   public ResponseEntity<Page<PaymentResponse>> getPaymentsByMember(
       @PathVariable Long memberId,
       @RequestParam(defaultValue = "0") int page,
@@ -105,7 +142,7 @@ public class PaymentController {
    * Get payments by loan
    */
   @GetMapping("/loan/{loanId}")
-  @PreAuthorize("hasRole('OFFICER') or hasRole('ADMIN') or hasRole('PRESIDENT')")
+  @PreAuthorize("hasRole('OFFICER') or hasRole('PRESIDENT')")
   public ResponseEntity<Page<PaymentResponse>> getPaymentsByLoan(
       @PathVariable Long loanId,
       @RequestParam(defaultValue = "0") int page,
@@ -128,7 +165,7 @@ public class PaymentController {
    * Get payments by savings account
    */
   @GetMapping("/savings/{savingAccountId}")
-  @PreAuthorize("hasRole('OFFICER') or hasRole('ADMIN') or hasRole('PRESIDENT')")
+  @PreAuthorize("hasRole('OFFICER') or hasRole('PRESIDENT')")
   public ResponseEntity<Page<PaymentResponse>> getPaymentsBySavingsAccount(
       @PathVariable Long savingAccountId,
       @RequestParam(defaultValue = "0") int page,
@@ -151,7 +188,7 @@ public class PaymentController {
    * Get all payments (admin only)
    */
   @GetMapping
-  @PreAuthorize("hasRole('ADMIN') or hasRole('PRESIDENT')")
+  @PreAuthorize("hasRole('PRESIDENT')")
   public ResponseEntity<Page<PaymentResponse>> getAllPayments(
       @RequestParam(defaultValue = "0") int page,
       @RequestParam(defaultValue = "10") int size,
@@ -173,7 +210,7 @@ public class PaymentController {
    * Process a payment
    */
   @PostMapping("/{id}/process")
-  @PreAuthorize("hasRole('OFFICER') or hasRole('ADMIN') or hasRole('PRESIDENT')")
+  @PreAuthorize("hasRole('OFFICER') or hasRole('PRESIDENT')")
   public ResponseEntity<PaymentResponse> processPayment(@PathVariable Long id) {
     try {
       String currentUser = userContext.getCurrentUsername();
@@ -189,7 +226,7 @@ public class PaymentController {
    * Verify a payment
    */
   @PostMapping("/{id}/verify")
-  @PreAuthorize("hasRole('ADMIN') or hasRole('PRESIDENT')")
+  @PreAuthorize("hasRole('PRESIDENT')")
   public ResponseEntity<PaymentResponse> verifyPayment(@PathVariable Long id) {
     try {
       String currentUser = userContext.getCurrentUsername();
@@ -205,7 +242,7 @@ public class PaymentController {
    * Cancel a payment
    */
   @PostMapping("/{id}/cancel")
-  @PreAuthorize("hasRole('ADMIN') or hasRole('PRESIDENT')")
+  @PreAuthorize("hasRole('PRESIDENT')")
   public ResponseEntity<PaymentResponse> cancelPayment(
       @PathVariable Long id,
       @RequestParam String reason) {
@@ -223,7 +260,7 @@ public class PaymentController {
    * Get overdue payments
    */
   @GetMapping("/overdue")
-  @PreAuthorize("hasRole('OFFICER') or hasRole('ADMIN') or hasRole('PRESIDENT')")
+  @PreAuthorize("hasRole('OFFICER') or hasRole('PRESIDENT')")
   public ResponseEntity<List<PaymentResponse>> getOverduePayments() {
     try {
       List<PaymentResponse> payments = paymentService.getOverduePayments();
@@ -238,7 +275,7 @@ public class PaymentController {
    * Get pending payments
    */
   @GetMapping("/pending")
-  @PreAuthorize("hasRole('OFFICER') or hasRole('ADMIN') or hasRole('PRESIDENT')")
+  @PreAuthorize("hasRole('OFFICER') or hasRole('PRESIDENT')")
   public ResponseEntity<List<PaymentResponse>> getPendingPayments() {
     try {
       List<PaymentResponse> payments = paymentService.getPendingPayments();
@@ -253,7 +290,7 @@ public class PaymentController {
    * Get payment statistics
    */
   @GetMapping("/statistics")
-  @PreAuthorize("hasRole('ADMIN') or hasRole('PRESIDENT')")
+  @PreAuthorize("hasRole('PRESIDENT')")
   public ResponseEntity<PaymentService.PaymentStatistics> getPaymentStatistics(
       @RequestParam(required = false) @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate startDate,
       @RequestParam(required = false) @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate endDate) {
@@ -277,7 +314,7 @@ public class PaymentController {
    * Get payments by date range
    */
   @GetMapping("/by-date-range")
-  @PreAuthorize("hasRole('ADMIN') or hasRole('PRESIDENT')")
+  @PreAuthorize("hasRole('PRESIDENT')")
   public ResponseEntity<Map<String, Object>> getPaymentsByDateRange(
       @RequestParam @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate startDate,
       @RequestParam @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate endDate,
@@ -301,7 +338,7 @@ public class PaymentController {
    * Get payment summary for a member
    */
   @GetMapping("/member/{memberId}/summary")
-  @PreAuthorize("hasRole('OFFICER') or hasRole('ADMIN') or hasRole('PRESIDENT') or @userContext.isCurrentMember(#memberId)")
+  @PreAuthorize("hasRole('OFFICER') or hasRole('PRESIDENT') or @userContext.isCurrentMember(#memberId)")
   public ResponseEntity<Map<String, Object>> getMemberPaymentSummary(@PathVariable Long memberId) {
     try {
       // This would typically calculate summary statistics
@@ -320,7 +357,7 @@ public class PaymentController {
    * Search payments
    */
   @GetMapping("/search")
-  @PreAuthorize("hasRole('OFFICER') or hasRole('ADMIN') or hasRole('PRESIDENT')")
+  @PreAuthorize("hasRole('OFFICER') or hasRole('PRESIDENT')")
   public ResponseEntity<Map<String, Object>> searchPayments(
       @RequestParam String query,
       @RequestParam(defaultValue = "0") int page,

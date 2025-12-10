@@ -24,10 +24,10 @@ import java.util.List;
 @FieldNameConstants
 @Entity
 @Table(name = "saving_account", indexes = {
-    @Index(name = "idx_account_number", columnList = "accountNumber"),
-    @Index(name = "idx_member_id", columnList = "memberId"),
-    @Index(name = "idx_account_type", columnList = "accountType"),
-    @Index(name = "idx_is_active", columnList = "isActive")
+    @Index(name = "idx_saving_account_number", columnList = "accountNumber"),
+    @Index(name = "idx_saving_account_member_id", columnList = "memberId"),
+    @Index(name = "idx_saving_account_account_type", columnList = "accountType"),
+    @Index(name = "idx_saving_account_is_active", columnList = "isActive")
 })
 @EntityListeners(AuditingEntityListener.class)
 public class SavingAccount extends BaseEntity {

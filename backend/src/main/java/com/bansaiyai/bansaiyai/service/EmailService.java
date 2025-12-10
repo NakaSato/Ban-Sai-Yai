@@ -43,7 +43,7 @@ public class EmailService {
   @Value("${app.name:Ban Sai Yai Savings Group}")
   private String appName;
 
-  private static final Locale THAI_LOCALE = Locale.of("th", "TH");
+  private static final Locale THAI_LOCALE = new Locale("th", "TH");
   private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("d MMMM yyyy", THAI_LOCALE);
   private static final NumberFormat CURRENCY_FORMAT = NumberFormat.getCurrencyInstance(THAI_LOCALE);
 

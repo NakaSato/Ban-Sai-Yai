@@ -194,15 +194,11 @@ public class UserService {
    * Validate role change
    */
   private void validateRoleChange(User.Role currentUserRole, User.Role targetRole) {
-    // Only ADMIN or PRESIDENT can manage users
-    if (currentUserRole != User.Role.ADMIN && currentUserRole != User.Role.PRESIDENT) {
+    // Only PRESIDENT can manage users
+    if (currentUserRole != User.Role.PRESIDENT) {
       throw new IllegalArgumentException("Current role does not have permission to manage users");
     }
 
-    // Cannot assign ADMIN role (only system can do this)
-    if (targetRole == User.Role.ADMIN) {
-      throw new IllegalArgumentException("Cannot assign ADMIN role through user management");
-    }
   }
 
   /**

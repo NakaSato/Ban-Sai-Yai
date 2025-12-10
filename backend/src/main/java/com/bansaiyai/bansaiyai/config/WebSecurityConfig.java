@@ -29,6 +29,7 @@ public class WebSecurityConfig {
 
   private final UserDetailsService userDetailsService;
   private final JwtAuthenticationFilter jwtAuthenticationFilter;
+  private final com.fasterxml.jackson.databind.ObjectMapper objectMapper;
 
   @Bean
   public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
@@ -40,6 +41,22 @@ public class WebSecurityConfig {
             .xssProtection(xss -> xss.headerValue(XXssProtectionHeaderWriter.HeaderValue.ENABLED_MODE_BLOCK))
             .contentSecurityPolicy(csp -> csp.policyDirectives("default-src 'self'; frame-ancestors 'self'"))
             .frameOptions(frame -> frame.sameOrigin()))
+        .exceptionHandling(ex -> ex
+            .authenticationEntryPoint((request, response, authException) -> {
+              response.setStatus(org.springframework.http.HttpStatus.UNAUTHORIZED.value());
+              response.setContentType(org.springframework.http.MediaType.APPLICATION_JSON_VALUE);
+              org.springframework.http.ProblemDetail pd = org.springframework.http.ProblemDetail
+                  .forStatusAndDetail(org.springframework.http.HttpStatus.UNAUTHORIZED, authException.getMessage());
+              objectMapper.writeValue(response.getOutputStream(), pd);
+            })
+            .accessDeniedHandler((request, response, accessDeniedException) -> {
+              response.setStatus(org.springframework.http.HttpStatus.FORBIDDEN.value());
+              response.setContentType(org.springframework.http.MediaType.APPLICATION_JSON_VALUE);
+              org.springframework.http.ProblemDetail pd = org.springframework.http.ProblemDetail
+                  .forStatusAndDetail(org.springframework.http.HttpStatus.FORBIDDEN,
+                      accessDeniedException.getMessage());
+              objectMapper.writeValue(response.getOutputStream(), pd);
+            }))
         .authorizeHttpRequests(auth -> auth
             // Public endpoints
             .requestMatchers("/auth/**").permitAll()
@@ -63,7 +80,7 @@ public class WebSecurityConfig {
             .requestMatchers("/api/admin/**").hasRole("PRESIDENT")
 
             // Payment endpoints restrictions
-            .requestMatchers(HttpMethod.POST, "/api/payments").hasAnyRole("OFFICER", "ADMIN")
+            .requestMatchers(HttpMethod.POST, "/api/payments").hasRole("OFFICER")
 
             // All other endpoints need authentication
             .anyRequest().authenticated());

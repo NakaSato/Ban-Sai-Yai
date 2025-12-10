@@ -3,6 +3,7 @@ package com.bansaiyai.bansaiyai.exception;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.BadCredentialsException;
@@ -15,13 +16,14 @@ import org.springframework.web.context.request.WebRequest;
 
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.validation.ConstraintViolationException;
+import java.net.URI;
 import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
 
 /**
  * Global exception handler for the application.
- * Provides consistent error responses across all controllers.
+ * Provides consistent error responses using RFC 7807 ProblemDetail.
  */
 @RestControllerAdvice
 @Slf4j
@@ -31,7 +33,7 @@ public class GlobalExceptionHandler {
    * Handle validation errors from @Valid annotations
    */
   @ExceptionHandler(MethodArgumentNotValidException.class)
-  public ResponseEntity<ErrorResponse> handleValidationExceptions(
+  public ResponseEntity<ProblemDetail> handleValidationExceptions(
       MethodArgumentNotValidException ex, WebRequest request) {
 
     Map<String, String> errors = new HashMap<>();
@@ -43,23 +45,19 @@ public class GlobalExceptionHandler {
 
     log.warn("Validation failed: {}", errors);
 
-    ErrorResponse response = ErrorResponse.builder()
-        .timestamp(LocalDateTime.now())
-        .status(HttpStatus.BAD_REQUEST.value())
-        .error("Validation Failed")
-        .message("Invalid input data")
-        .path(request.getDescription(false).replace("uri=", ""))
-        .validationErrors(errors)
-        .build();
+    ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, "Invalid input data");
+    problemDetail.setTitle("Validation Failed");
+    problemDetail.setProperty("timestamp", LocalDateTime.now());
+    problemDetail.setProperty("validationErrors", errors);
 
-    return ResponseEntity.badRequest().body(response);
+    return ResponseEntity.badRequest().body(problemDetail);
   }
 
   /**
    * Handle constraint violations from @Validated
    */
   @ExceptionHandler(ConstraintViolationException.class)
-  public ResponseEntity<ErrorResponse> handleConstraintViolation(
+  public ResponseEntity<ProblemDetail> handleConstraintViolation(
       ConstraintViolationException ex, WebRequest request) {
 
     Map<String, String> errors = new HashMap<>();
@@ -71,124 +69,102 @@ public class GlobalExceptionHandler {
 
     log.warn("Constraint violation: {}", errors);
 
-    ErrorResponse response = ErrorResponse.builder()
-        .timestamp(LocalDateTime.now())
-        .status(HttpStatus.BAD_REQUEST.value())
-        .error("Constraint Violation")
-        .message("Invalid input data")
-        .path(request.getDescription(false).replace("uri=", ""))
-        .validationErrors(errors)
-        .build();
+    ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, "Invalid input data");
+    problemDetail.setTitle("Constraint Violation");
+    problemDetail.setProperty("timestamp", LocalDateTime.now());
+    problemDetail.setProperty("validationErrors", errors);
 
-    return ResponseEntity.badRequest().body(response);
+    return ResponseEntity.badRequest().body(problemDetail);
   }
 
   /**
    * Handle entity not found exceptions
    */
   @ExceptionHandler(EntityNotFoundException.class)
-  public ResponseEntity<ErrorResponse> handleEntityNotFound(
+  public ResponseEntity<ProblemDetail> handleEntityNotFound(
       EntityNotFoundException ex, WebRequest request) {
 
     log.warn("Entity not found: {}", ex.getMessage());
 
-    ErrorResponse response = ErrorResponse.builder()
-        .timestamp(LocalDateTime.now())
-        .status(HttpStatus.NOT_FOUND.value())
-        .error("Not Found")
-        .message(ex.getMessage())
-        .path(request.getDescription(false).replace("uri=", ""))
-        .build();
+    ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(HttpStatus.NOT_FOUND, ex.getMessage());
+    problemDetail.setTitle("Not Found");
+    problemDetail.setProperty("timestamp", LocalDateTime.now());
 
-    return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
+    return ResponseEntity.status(HttpStatus.NOT_FOUND).body(problemDetail);
   }
 
   /**
    * Handle resource not found (custom exception)
    */
   @ExceptionHandler(ResourceNotFoundException.class)
-  public ResponseEntity<ErrorResponse> handleResourceNotFound(
+  public ResponseEntity<ProblemDetail> handleResourceNotFound(
       ResourceNotFoundException ex, WebRequest request) {
 
     log.warn("Resource not found: {}", ex.getMessage());
 
-    ErrorResponse response = ErrorResponse.builder()
-        .timestamp(LocalDateTime.now())
-        .status(HttpStatus.NOT_FOUND.value())
-        .error("Resource Not Found")
-        .message(ex.getMessage())
-        .path(request.getDescription(false).replace("uri=", ""))
-        .build();
+    ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(HttpStatus.NOT_FOUND, ex.getMessage());
+    problemDetail.setTitle("Resource Not Found");
+    problemDetail.setProperty("timestamp", LocalDateTime.now());
 
-    return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
+    return ResponseEntity.status(HttpStatus.NOT_FOUND).body(problemDetail);
   }
 
   /**
    * Handle business logic exceptions
    */
   @ExceptionHandler(BusinessException.class)
-  public ResponseEntity<ErrorResponse> handleBusinessException(
+  public ResponseEntity<ProblemDetail> handleBusinessException(
       BusinessException ex, WebRequest request) {
 
     log.warn("Business error: {}", ex.getMessage());
 
     HttpStatus status = ex.getHttpStatus();
-    ErrorResponse response = ErrorResponse.builder()
-        .timestamp(LocalDateTime.now())
-        .status(status.value())
-        .error("Business Rule Violation")
-        .message(ex.getMessage())
-        .path(request.getDescription(false).replace("uri=", ""))
-        .build();
+    ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(status, ex.getMessage());
+    problemDetail.setTitle("Business Rule Violation");
+    problemDetail.setProperty("timestamp", LocalDateTime.now());
 
-    return ResponseEntity.status(status).body(response);
+    return ResponseEntity.status(status).body(problemDetail);
   }
 
   /**
    * Handle authentication failures
    */
   @ExceptionHandler({ AuthenticationException.class, BadCredentialsException.class })
-  public ResponseEntity<ErrorResponse> handleAuthenticationException(
+  public ResponseEntity<ProblemDetail> handleAuthenticationException(
       Exception ex, WebRequest request) {
 
     log.warn("Authentication failed: {}", ex.getMessage());
 
-    ErrorResponse response = ErrorResponse.builder()
-        .timestamp(LocalDateTime.now())
-        .status(HttpStatus.UNAUTHORIZED.value())
-        .error("Authentication Failed")
-        .message("Invalid username or password")
-        .path(request.getDescription(false).replace("uri=", ""))
-        .build();
+    ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(HttpStatus.UNAUTHORIZED,
+        "Invalid username or password");
+    problemDetail.setTitle("Authentication Failed");
+    problemDetail.setProperty("timestamp", LocalDateTime.now());
 
-    return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(response);
+    return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(problemDetail);
   }
 
   /**
    * Handle access denied exceptions
    */
   @ExceptionHandler(AccessDeniedException.class)
-  public ResponseEntity<ErrorResponse> handleAccessDeniedException(
+  public ResponseEntity<ProblemDetail> handleAccessDeniedException(
       AccessDeniedException ex, WebRequest request) {
 
     log.warn("Access denied: {}", ex.getMessage());
 
-    ErrorResponse response = ErrorResponse.builder()
-        .timestamp(LocalDateTime.now())
-        .status(HttpStatus.FORBIDDEN.value())
-        .error("Access Denied")
-        .message("You do not have permission to access this resource")
-        .path(request.getDescription(false).replace("uri=", ""))
-        .build();
+    ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(HttpStatus.FORBIDDEN,
+        "You do not have permission to access this resource");
+    problemDetail.setTitle("Access Denied");
+    problemDetail.setProperty("timestamp", LocalDateTime.now());
 
-    return ResponseEntity.status(HttpStatus.FORBIDDEN).body(response);
+    return ResponseEntity.status(HttpStatus.FORBIDDEN).body(problemDetail);
   }
 
   /**
    * Handle data integrity violations (duplicate keys, foreign key constraints)
    */
   @ExceptionHandler(DataIntegrityViolationException.class)
-  public ResponseEntity<ErrorResponse> handleDataIntegrityViolation(
+  public ResponseEntity<ProblemDetail> handleDataIntegrityViolation(
       DataIntegrityViolationException ex, WebRequest request) {
 
     log.error("Data integrity violation: {}", ex.getMessage());
@@ -198,34 +174,27 @@ public class GlobalExceptionHandler {
       message = "A record with this information already exists";
     }
 
-    ErrorResponse response = ErrorResponse.builder()
-        .timestamp(LocalDateTime.now())
-        .status(HttpStatus.CONFLICT.value())
-        .error("Data Conflict")
-        .message(message)
-        .path(request.getDescription(false).replace("uri=", ""))
-        .build();
+    ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, message);
+    problemDetail.setTitle("Data Conflict");
+    problemDetail.setProperty("timestamp", LocalDateTime.now());
 
-    return ResponseEntity.status(HttpStatus.CONFLICT).body(response);
+    return ResponseEntity.status(HttpStatus.CONFLICT).body(problemDetail);
   }
 
   /**
    * Handle all other exceptions
    */
   @ExceptionHandler(Exception.class)
-  public ResponseEntity<ErrorResponse> handleAllExceptions(
+  public ResponseEntity<ProblemDetail> handleAllExceptions(
       Exception ex, WebRequest request) {
 
     log.error("Unexpected error occurred", ex);
 
-    ErrorResponse response = ErrorResponse.builder()
-        .timestamp(LocalDateTime.now())
-        .status(HttpStatus.INTERNAL_SERVER_ERROR.value())
-        .error("Internal Server Error")
-        .message("An unexpected error occurred. Please try again later.")
-        .path(request.getDescription(false).replace("uri=", ""))
-        .build();
+    ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(HttpStatus.INTERNAL_SERVER_ERROR,
+        "An unexpected error occurred. Please try again later.");
+    problemDetail.setTitle("Internal Server Error");
+    problemDetail.setProperty("timestamp", LocalDateTime.now());
 
-    return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+    return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(problemDetail);
   }
 }

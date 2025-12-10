@@ -86,31 +86,35 @@ public class DashboardController {
     // President endpoints
     @GetMapping("/president/par-analysis")
     @PreAuthorize("hasRole('PRESIDENT')")
+    @io.swagger.v3.oas.annotations.Operation(summary = "Get PAR Analysis", description = "Retrieves Portfolio At Risk analysis including ratio and buckets.")
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Success")
     public ResponseEntity<PARAnalysisDTO> getPARAnalysis() {
-        // TODO: Implement in future task
-        return ResponseEntity.ok(new PARAnalysisDTO());
+        return ResponseEntity.ok(dashboardService.calculatePARAnalysis());
     }
 
     @GetMapping("/president/par-details")
     @PreAuthorize("hasRole('PRESIDENT')")
     public ResponseEntity<Map<String, Object>> getPARDetails(@RequestParam String category) {
-        // TODO: Implement in future task
+        // TODO: Implement details view if needed, for now Analysis covers the main
+        // requirement
         return ResponseEntity.ok(Map.of("category", category, "members", List.of()));
     }
 
     @GetMapping("/president/liquidity")
     @PreAuthorize("hasRole('PRESIDENT')")
+    @io.swagger.v3.oas.annotations.Operation(summary = "Get Liquidity Ratio", description = "Calculates current liquidity ratio based on cash, bank, and savings.")
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Success")
     public ResponseEntity<LiquidityDTO> getLiquidityRatio() {
-        // TODO: Implement in future task
-        return ResponseEntity.ok(new LiquidityDTO());
+        return ResponseEntity.ok(dashboardService.calculateLiquidityRatio());
     }
 
     @GetMapping("/president/membership-trends")
     @PreAuthorize("hasRole('PRESIDENT')")
+    @io.swagger.v3.oas.annotations.Operation(summary = "Get Membership Trends", description = "Retrieves membership growth trends over the specified number of months.")
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Success")
     public ResponseEntity<MembershipTrendsDTO> getMembershipTrends(
             @RequestParam(defaultValue = "12") int months) {
-        // TODO: Implement in future task
-        return ResponseEntity.ok(new MembershipTrendsDTO());
+        return ResponseEntity.ok(dashboardService.getMembershipTrends(months));
     }
 
     // Member endpoints

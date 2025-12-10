@@ -371,38 +371,5 @@ public class SavingTransaction extends BaseEntity {
       transaction.notes = this.notes;
       return transaction;
     }
-
-    // Additional getters and setters for SoD fields
-    public User getCreatorUser() {
-      return creatorUser;
-    }
-
-    public void setCreatorUser(User creatorUser) {
-      this.creatorUser = creatorUser;
-    }
-
-    public User getApproverUser() {
-      return approverUser;
-    }
-
-    public void setApproverUser(User approverUser) {
-      this.approverUser = approverUser;
-    }
-
-    public ApprovalStatus getApprovalStatus() {
-      return approvalStatus;
-    }
-
-    public void setApprovalStatus(ApprovalStatus approvalStatus) {
-      this.approvalStatus = approvalStatus;
-    }
-
-    public LocalDateTime getVoidedAt() {
-      return voidedAt;
-    }
-
-    public void setVoidedAt(LocalDateTime voidedAt) {
-      this.voidedAt = voidedAt;
-    }
   }
 }

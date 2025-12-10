@@ -24,6 +24,8 @@ import java.util.UUID;
 public class MemberService {
 
   private final MemberRepository memberRepository;
+  private final com.bansaiyai.bansaiyai.repository.LoanRepository loanRepository;
+  private final com.bansaiyai.bansaiyai.repository.GuarantorRepository guarantorRepository;
 
   public Page<Member> getAllMembers(Pageable pageable) {
     log.debug("Fetching all members with pagination: {}", pageable);
@@ -74,13 +76,55 @@ public class MemberService {
       throw new com.bansaiyai.bansaiyai.exception.BusinessException("ID Card already registered", "DUPLICATE_ID_CARD");
     }
 
-    // Check Age (Example rule: Minimum 18 years)
-    if (member.getAge() < 18) {
-      throw new com.bansaiyai.bansaiyai.exception.BusinessException("Member must be at least 18 years old",
-          "INVALID_AGE");
+    // Calculate Age if DOB is present
+    if (member.getDateOfBirth() != null) {
+      int age = java.time.Period.between(member.getDateOfBirth(), java.time.LocalDate.now()).getYears();
+      // Check Age (Example rule: Minimum 18 years)
+      if (age < 18) {
+        throw new com.bansaiyai.bansaiyai.exception.BusinessException("Member must be at least 18 years old",
+            "INVALID_AGE");
+      }
     }
 
     return memberRepository.save(member);
+  }
+
+  @Transactional(readOnly = true)
+  public com.bansaiyai.bansaiyai.dto.RiskProfileDTO getMemberRiskProfile(Long memberId) {
+    Member member = memberRepository.findById(memberId)
+        .orElseThrow(() -> new com.bansaiyai.bansaiyai.exception.ResourceNotFoundException("Member", "id", memberId));
+
+    // Calculate Total Debt (Active Loans)
+    java.math.BigDecimal totalDebt = loanRepository
+        .findByMemberIdAndStatus(memberId, com.bansaiyai.bansaiyai.entity.enums.LoanStatus.ACTIVE)
+        .stream()
+        .map(l -> l.getOutstandingBalance() != null ? l.getOutstandingBalance() : java.math.BigDecimal.ZERO)
+        .reduce(java.math.BigDecimal.ZERO, java.math.BigDecimal::add);
+
+    // Calculate Total Guaranteed Amount (Active Guarantees)
+    java.math.BigDecimal totalGuaranteed = guarantorRepository.findByMemberIdAndIsActive(memberId, true)
+        .stream()
+        .map(g -> g.getGuaranteedAmount() != null ? g.getGuaranteedAmount() : java.math.BigDecimal.ZERO)
+        .reduce(java.math.BigDecimal.ZERO, java.math.BigDecimal::add);
+
+    java.math.BigDecimal netLiability = totalDebt.add(totalGuaranteed);
+
+    String riskStatus = "LOW";
+    // Simple risk logic
+    if (netLiability.compareTo(new java.math.BigDecimal("1000000")) > 0) {
+      riskStatus = "HIGH";
+    } else if (netLiability.compareTo(new java.math.BigDecimal("500000")) > 0) {
+      riskStatus = "MEDIUM";
+    }
+
+    return com.bansaiyai.bansaiyai.dto.RiskProfileDTO.builder()
+        .memberId(member.getId())
+        .memberName(member.getName())
+        .totalDebt(totalDebt)
+        .totalGuaranteed(totalGuaranteed)
+        .netLiability(netLiability)
+        .riskStatus(riskStatus)
+        .build();
   }
 
   @Transactional

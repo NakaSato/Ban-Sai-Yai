@@ -1,0 +1,147 @@
+@startuml pspec-loan-approval
+'===============================================
+' Process Specification - Loan Approval
+' PSPEC 3.0 - Ban Sai Yai Savings Cooperative
+'===============================================
+
+skinparam backgroundColor #FFFFFF
+skinparam defaultFontName "Segoe UI, Arial"
+skinparam defaultFontSize 11
+skinparam shadowing false
+
+skinparam activity {
+    BackgroundColor #438DD5
+    BorderColor #3C7FC0
+    FontColor #FFFFFF
+    DiamondBackgroundColor #FEF3C7
+    DiamondBorderColor #F59E0B
+}
+
+skinparam activityDiamond {
+    BackgroundColor #FEF3C7
+    BorderColor #F59E0B
+    FontColor #1F2937
+}
+
+title <size:18><b>PSPEC 3.0: Loan Approval</b></size>\n<size:10>Process Specification - อนุมัติสินเชื่อ</size>
+
+|#D1FAE5|President|
+|#E0E7FF|System|
+
+start
+
+|President|
+:Login to System;
+
+|System|
+:Display Reviewed Loans;
+note right
+  **Filter:**
+  Status = REVIEWED
+  Show officer review notes
+end note
+
+|President|
+:Select Loan for Decision;
+
+|System|
+:Display Complete Loan Profile;
+note right
+  **Information:**
+  - Member details
+  - Loan request details
+  - Officer review & notes
+  - Risk assessment
+  - Recommendation
+end note
+
+|President|
+:Review Application & Notes;
+
+:Make Decision;
+
+if (Approve?) then (Yes)
+    |President|
+    :Confirm Approval;
+    
+    |System|
+    :Update Loan Status;
+    note right
+      **Update:**
+      - Status: APPROVED
+      - Approver ID
+      - Approval timestamp
+    end note
+    
+    :Generate Loan Contract;
+    note right
+      **Contract includes:**
+      - Loan terms
+      - Payment schedule
+      - Interest rate
+      - Penalties
+    end note
+    
+    :Send Approval Notification;
+    note right
+      **Email to Member:**
+      - Approval confirmation
+      - Loan details
+      - Next steps
+    end note
+    
+    #D4EDDA:Loan Approved;
+    note right
+      Ready for disbursement
+    end note
+    
+else (No)
+    |President|
+    :Enter Rejection Reason;
+    note right
+      **Common Reasons:**
+      - Insufficient collateral
+      - High debt ratio
+      - Poor credit history
+      - Incomplete documents
+    end note
+    
+    :Confirm Rejection;
+    
+    |System|
+    :Update Loan Status;
+    note right
+      **Update:**
+      - Status: REJECTED
+      - Rejection reason
+      - Rejection timestamp
+    end note
+    
+    :Send Rejection Notification;
+    note right
+      **Email to Member:**
+      - Rejection notice
+      - Reason explanation
+      - Appeal process
+    end note
+    
+    #F8D7DA:Loan Rejected;
+endif
+
+stop
+
+legend bottom
+  **PSPEC 3.0: Loan Approval**
+  --
+  **Process ID:** PSPEC-3.0
+  **Process Name:** Approve/Reject Loan (อนุมัติ/ปฏิเสธสินเชื่อ)
+  **Trigger:** President selects reviewed loan
+  **Input:** Reviewed loan application
+  **Output:** Approved or Rejected loan
+  **Pre-condition:** Loan status = REVIEWED
+  **Post-condition:** Loan status = APPROVED or REJECTED
+endlegend
+
+footer <size:9>Process Specification | Ban Sai Yai Savings Cooperative</size>
+
+@enduml

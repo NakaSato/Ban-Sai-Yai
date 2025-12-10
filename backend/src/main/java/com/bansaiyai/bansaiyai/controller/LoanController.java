@@ -109,7 +109,7 @@ public class LoanController {
    * Get loan by UUID (SECURE - prevents ID enumeration)
    */
   @GetMapping("/{uuid}")
-  @PreAuthorize("hasAnyRole('ADMIN', 'PRESIDENT', 'SECRETARY', 'OFFICER', 'MEMBER')")
+  @PreAuthorize("hasAnyRole('PRESIDENT', 'SECRETARY', 'OFFICER', 'MEMBER')")
   public ResponseEntity<LoanResponse> getLoanById(@PathVariable UUID uuid) {
     try {
       LoanResponse loan = loanService.getLoanByUuid(uuid);
@@ -287,6 +287,18 @@ public class LoanController {
       Pageable pageable = PageRequest.of(page, size, sortObj);
       Page<LoanResponse> loans = loanService.getLoansByStatus(LoanStatus.ACTIVE, pageable);
       return ResponseEntity.ok(loans);
+    } catch (Exception e) {
+      return ResponseEntity.badRequest().build();
+    }
+  }
+
+  @GetMapping("/{loanId}/history")
+  @PreAuthorize("hasAnyRole('OFFICER', 'SECRETARY', 'PRESIDENT') or @loanSecurity.isLoanOwner(authentication, #loanId)")
+  public ResponseEntity<java.util.List<com.bansaiyai.bansaiyai.dto.LoanBalanceDTO>> getLoanHistory(
+      @PathVariable Long loanId) {
+    try {
+      java.util.List<com.bansaiyai.bansaiyai.dto.LoanBalanceDTO> history = loanService.getLoanHistory(loanId);
+      return ResponseEntity.ok(history);
     } catch (Exception e) {
       return ResponseEntity.badRequest().build();
     }

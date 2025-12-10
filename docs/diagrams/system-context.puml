@@ -1,0 +1,83 @@
+@startuml
+!theme plain
+
+' --- THAI FONT FIX ---
+' We prioritize Tahoma (Windows) and Thonburi (Mac) which have built-in Thai support.
+skinparam defaultFontName "Thonburi, Leelawadee UI, Garuda, SansSerif"
+
+' --- FIX FOR TEXT CUT-OFF ---
+' Increases line height slightly to prevent tone marks from clipping
+skinparam minClassWidth 150
+skinparam padding 4
+
+' --- C4 STYLING ---
+skinparam defaultTextAlignment center
+skinparam wrapWidth 200
+skinparam maxMessageSize 150
+skinparam roundCorner 10
+skinparam shadowing false
+
+skinparam rectangle {
+    StereotypeFontSize 12
+    FontColor #ffffff
+}
+
+skinparam rectangle<<Person>> {
+    BackgroundColor #08427b
+    BorderColor #052e56
+}
+
+skinparam rectangle<<System>> {
+    BackgroundColor #1168bd
+    BorderColor #0b4884
+}
+
+skinparam rectangle<<ExternalSystem>> {
+    BackgroundColor #999999
+    BorderColor #6b6b6b
+}
+
+skinparam database<<Database>> {
+    BackgroundColor #1168bd
+    BorderColor #0b4884
+}
+
+' --- DIAGRAM CONTENT ---
+
+' Actors (Person) - Role Hierarchy: PRESIDENT > SECRETARY > OFFICER > MEMBER
+rectangle "==ประธานกลุ่ม\n(President)\n\nApproves loans, views executive\ndashboard, manages user roles." <<Person>> as president
+
+rectangle "==เลขานุการกลุ่ม\n(Secretary)\n\nManages chart of accounts,\ncloses monthly accounts,\ngenerates financial reports." <<Person>> as secretary
+
+rectangle "==เจ้าหน้าที่กลุ่ม\n(Officer)\n\nRecords daily transactions,\nprocesses loan requests,\nmember registration." <<Person>> as officer
+
+rectangle "==สมาชิกกลุ่ม\n(Member)\n\nViews own data, payment\nhistory, and loan status." <<Person>> as member
+
+' System
+rectangle "==Ban Sai Yai\nFinancial System\n(ระบบสารสนเทศบัญชี)\n\n" <<System>> as banking_system
+
+' External Systems
+rectangle "==Email Service\n(บริการอีเมล)\n\nSends notifications" <<ExternalSystem>> as email_sys
+
+rectangle "==File Storage\n(จัดเก็บไฟล์)\n\nMember documents,\nreceipts, reports" <<ExternalSystem>> as file_sys
+
+database "==PostgreSQL\n(ฐานข้อมูล)\n\nPersistent data storage\nMembers, Loans, Payments,\nAccounting entries" <<Database>> as postgres
+
+' Relationships - President (Top Authority)
+president .down.> banking_system : <color:black>Approves loans\n<color:black>(อนุมัติสินเชื่อ)</color>
+
+' Relationships - Secretary (Financial Management)
+secretary .down.> banking_system : <color:black>Closes accounts & Reports\n<color:black>(ปิดบัญชี/รายงาน)</color>
+
+' Relationships - Officer (Daily Operations)
+officer .down.> banking_system : <color:black>Inputs transactions\n<color:black>(บันทึกรายการ)</color>
+
+' Relationships - Member (Self-Service)
+member .up.> banking_system : <color:black>Views own status\n<color:black>(ดูข้อมูลตนเอง)</color>
+
+' System to External
+banking_system -down-> postgres : <color:black>Reads/Writes\n<color:black>(JPA/Hibernate)</color>
+banking_system -right-> email_sys : <color:black>Sends alerts\n<color:black>(SMTP)</color>
+banking_system -left-> file_sys : <color:black>Stores files\n<color:black>(REST API)</color>
+
+@enduml

@@ -22,8 +22,9 @@ public class JournalController {
 
     @PostMapping("/entries")
     @PreAuthorize("hasAnyRole('OFFICER', 'SECRETARY')")
-    public ResponseEntity<AccountingEntry> createEntry(@RequestBody JournalEntryRequest request) {
-        return ResponseEntity.ok(accountingService.createEntry(request));
+    public ResponseEntity<AccountingEntry> createEntry(@RequestBody JournalEntryRequest request,
+            java.security.Principal principal) {
+        return ResponseEntity.ok(accountingService.createEntry(request, principal.getName()));
     }
 
     @GetMapping("/summary")

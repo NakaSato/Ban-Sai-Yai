@@ -108,4 +108,25 @@ public interface LoanRepository extends JpaRepository<Loan, Long> {
   List<Loan> findOverdueLoans();
 
   List<Loan> findTop10ByOrderByCreatedAtDesc();
+
+  long countByStartDateBetween(java.time.LocalDate startDate, java.time.LocalDate endDate);
+
+  long countByEndDateBetween(java.time.LocalDate startDate, java.time.LocalDate endDate);
+
+  /**
+   * Sum outstanding balance for active loans with maturity date in a specific
+   * range.
+   * Used for PAR Analysis (1-30, 31-60, etc.)
+   */
+  @Query("SELECT COALESCE(SUM(l.outstandingBalance), 0) FROM Loan l WHERE l.status = 'ACTIVE' AND l.maturityDate BETWEEN :startDate AND :endDate")
+  BigDecimal sumOutstandingBalanceByMaturityDateBetween(@Param("startDate") java.time.LocalDate startDate,
+      @Param("endDate") java.time.LocalDate endDate);
+
+  /**
+   * Sum outstanding balance for active loans with maturity date before a specific
+   * date.
+   * Used for PAR > 90 days (maturity date < today - 90 days)
+   */
+  @Query("SELECT COALESCE(SUM(l.outstandingBalance), 0) FROM Loan l WHERE l.status = 'ACTIVE' AND l.maturityDate < :date")
+  BigDecimal sumOutstandingBalanceByMaturityDateBefore(@Param("date") java.time.LocalDate date);
 }

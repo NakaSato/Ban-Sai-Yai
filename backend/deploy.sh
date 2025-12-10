@@ -13,44 +13,45 @@ if ! command -v docker &> /dev/null; then
     exit 1
 fi
 
-# Check if Docker Compose is installed
-if ! command -v docker-compose &> /dev/null; then
-    echo "❌ Docker Compose is not installed. Please install Docker Compose first."
-    exit 1
-fi
-
 # Stop and remove existing containers
 echo "🛑 Stopping existing containers..."
-docker-compose down --remove-orphans
+docker compose down --remove-orphans
 
 # Build and start the application
-echo "🔨 Building and starting application..."
-docker-compose up --build -d
+echo "🔨 Building and starting application (Java 21 + Postgres)..."
+docker compose up --build -d
 
-# Wait for the database to be ready
-echo "⏳ Waiting for database to be ready..."
-sleep 30
+# Wait for the application to be ready (Health Check)
+echo "⏳ Waiting for application to be healthy (max 60s)..."
+MAX_RETRIES=12
+count=0
+while [ $count -lt $MAX_RETRIES ]; do
+    if curl -s http://localhost:9090/actuator/health | grep -q "UP"; then
+        echo "✅ Application is HEALTHY!"
+        break
+    fi
+    echo "   ... waiting ($count/$MAX_RETRIES)"
+    sleep 5
+    count=$((count + 1))
+done
 
-# Check if the application is running
-echo "🔍 Checking application status..."
-if docker-compose ps | grep -q "Up"; then
-    echo "✅ Application is running successfully!"
-    echo ""
-    echo "📋 Access Information:"
-    echo "   - Frontend: http://localhost:8080"
-    echo "   - Backend API: http://localhost:8080/api"
-    echo "   - Database: localhost:3306"
-    echo ""
-    echo "🔐 Default Database Credentials:"
-    echo "   - Database: ban_sai_yai"
-    echo "   - Username: admin"
-    echo "   - Password: admin123"
-    echo ""
-    echo "📝 To view logs: docker-compose logs -f"
-    echo "🛑 To stop: docker-compose down"
-else
-    echo "❌ Application failed to start. Check logs with: docker-compose logs"
-    exit 1
+if [ $count -eq $MAX_RETRIES ]; then
+     echo "⚠️ Application did not become healthy in time. Check logs."
 fi
 
-echo "🎉 Deployment completed successfully!"
+# Check if the application is running via Docker
+echo "🔍 Checking container status..."
+if docker compose ps | grep -q "Up"; then
+    echo "🎉 Deployment completed successfully!"
+    echo ""
+    echo "📋 Access Information:"
+    echo "   - Backend API: http://localhost:9090"
+    echo "   - Swagger UI:  http://localhost:9090/swagger-ui.html"
+    echo "   - Database:    localhost:5432 (PostgreSQL)"
+    echo ""
+    echo "📝 To view logs: docker compose logs -f"
+    echo "🛑 To stop: docker compose down"
+else
+    echo "❌ Application failed to start. Check logs with: docker compose logs"
+    exit 1
+fi

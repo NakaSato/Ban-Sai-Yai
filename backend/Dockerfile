@@ -1,16 +1,26 @@
-# Simple runtime stage - using pre-built JAR
-FROM eclipse-temurin:21-jdk
+# Build Stage
+FROM eclipse-temurin:21-jdk-jammy AS build
 WORKDIR /app
+COPY .mvn/ .mvn
+COPY mvnw pom.xml ./
+# Resolve dependencies to improve cache
+RUN ./mvnw dependency:go-offline
+COPY src ./src
+# Build skipping tests and test compilation
+RUN ./mvnw clean package -Dmaven.test.skip=true
 
-# Copy the backend JAR (built locally with ./mvnw clean package -DskipTests)
-COPY target/*.jar app.jar
+# Runtime Stage
+FROM eclipse-temurin:21-jre-jammy
+WORKDIR /app
+COPY --from=build /app/target/*.jar app.jar
 
-# Set timezone to Bangkok
+# Set timezone
 ENV TZ=Asia/Bangkok
 RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
 
-# Expose port
-EXPOSE 9090
+# Security: Run as non-root user
+RUN useradd -m spring
+USER spring
 
-# Command to run the application
+EXPOSE 9090
 ENTRYPOINT ["java", "-jar", "app.jar"]

@@ -1,0 +1,110 @@
+@startuml loan-submission-sequence
+'===============================================
+' Sequence Diagram - Loan Submission
+' C4 Model Style - Ban Sai Yai Savings Cooperative
+'===============================================
+
+skinparam backgroundColor #FFFFFF
+skinparam defaultFontName "Segoe UI, Arial"
+skinparam defaultFontSize 11
+skinparam shadowing false
+
+skinparam participant {
+    BackgroundColor #438DD5
+    BorderColor #3C7FC0
+    FontColor #FFFFFF
+    FontSize 11
+}
+
+skinparam actor {
+    BackgroundColor #08427B
+    BorderColor #073B6F
+    FontColor #FFFFFF
+}
+
+skinparam database {
+    BackgroundColor #438DD5
+    BorderColor #3C7FC0
+    FontColor #FFFFFF
+}
+
+skinparam sequence {
+    ArrowColor #707070
+    ArrowThickness 1
+    LifeLineBorderColor #707070
+    LifeLineBackgroundColor #F5F5F5
+}
+
+skinparam note {
+    BackgroundColor #FEF3C7
+    BorderColor #F59E0B
+    FontSize 9
+}
+
+title <size:18><b>Loan Submission</b></size>\n<size:10>[Sequence Diagram] Ban Sai Yai Savings Cooperative</size>
+
+' ========================================
+' PARTICIPANTS
+' ========================================
+actor "Member\n<size:9>สมาชิก</size>" as Member #08427B
+participant "Web App\n<size:8>[Frontend]</size>" as Frontend #438DD5
+participant "Loan Service\n<size:8>[Backend]</size>" as LoanService #438DD5
+participant "Validator\n<size:8>[Component]</size>" as Validator #85BBF0
+participant "Calculator\n<size:8>[Component]</size>" as Calculator #85BBF0
+database "Database\n<size:8>[PostgreSQL]</size>" as DB #438DD5
+
+' ========================================
+' SEQUENCE FLOW
+' ========================================
+
+Member -> Frontend : Fill loan application form
+activate Frontend #438DD5
+
+Frontend -> LoanService : POST /api/loans/request
+activate LoanService #438DD5
+
+LoanService -> Validator : validateEligibility(memberId)
+activate Validator #85BBF0
+Validator -> DB : Check member status
+DB --> Validator : Member data
+Validator --> LoanService : Eligibility result
+deactivate Validator
+
+alt #D4EDDA Eligible
+    LoanService -> Calculator : calculateInterest(amount, term)
+    activate Calculator #85BBF0
+    Calculator --> LoanService : Interest rate & schedule
+    deactivate Calculator
+    
+    LoanService -> DB : Save loan (status: PENDING)
+    DB --> LoanService : Loan ID
+    
+    LoanService --> Frontend : 201 Created
+    Frontend --> Member : Show confirmation
+    
+    note right of DB #D4EDDA
+        Status: **PENDING**
+    end note
+    
+else #F8D7DA Not Eligible
+    LoanService --> Frontend : 400 Bad Request
+    Frontend --> Member : Show rejection reason
+end
+
+deactivate LoanService
+deactivate Frontend
+
+' ========================================
+' LEGEND
+' ========================================
+legend bottom right
+  |<#08427B> Actor |
+  |<#438DD5> Service |
+  |<#85BBF0> Component |
+  |<#D4EDDA> Success |
+  |<#F8D7DA> Failure |
+endlegend
+
+footer <size:9>C4 Model - Sequence View | Loan Submission</size>
+
+@enduml

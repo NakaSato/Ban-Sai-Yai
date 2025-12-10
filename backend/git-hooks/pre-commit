@@ -1,0 +1,13 @@
+#!/bin/sh
+#
+# Pre-commit hook to run Spotless check
+#
+
+echo "Running Spotless check..."
+cd backend
+mvn spotless:check
+
+if [ $? -ne 0 ]; then
+    echo "Error: Spotless check failed. Run 'mvn spotless:apply' in backend directory to fix formatting."
+    exit 1
+fi
