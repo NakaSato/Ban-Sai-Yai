@@ -5,7 +5,7 @@
 
 A robust, enterprise-grade Spring Boot backend for managing community financial groups, featuring comprehensive role-based access, automated accounting, and strict audit logging.
 
-## 🚀 Key Achievements
+## Key Achievements
 
 We have successfully implemented the 4 core pillars of the system:
 
@@ -47,7 +47,7 @@ We have successfully implemented the 4 core pillars of the system:
 
 ---
 
-## 🛠 Tech Stack
+## Tech Stack
 
 - **Java**: 21 (LTS)
 - **Framework**: Spring Boot 3.2.0
@@ -56,7 +56,7 @@ We have successfully implemented the 4 core pillars of the system:
 - **Security**: Spring Security + JWT
 - **Testing**: JUnit 5 + Mockito
 
-## 🚦 Quick Start
+## Quick Start
 
 ### Prerequisites
 
@@ -84,7 +84,7 @@ cd backend
 ./mvnw test
 ```
 
-## 📚 Documentation
+## Documentation
 
 - **[Backend API Reference](file:///Users/chanthawat/.gemini/antigravity/brain/5f37f70c-fda3-4edd-a594-45dc57fa7a25/backend_api_reference.md)**: Full list of endpoints.
 - **[Walkthrough](file:///Users/chanthawat/.gemini/antigravity/brain/5f37f70c-fda3-4edd-a594-45dc57fa7a25/walkthrough.md)**: Step-by-step verification guide.
