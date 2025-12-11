@@ -1,6 +1,7 @@
 package com.bansaiyai.bansaiyai.entity;
 
 import com.bansaiyai.bansaiyai.entity.enums.AccountType;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.*;
 import lombok.*;
@@ -37,6 +38,7 @@ public class SavingAccount extends BaseEntity {
   @Size(min = 8, max = 20, message = "Account number must be between 8 and 20 characters")
   private String accountNumber;
 
+  @JsonIgnore
   @ManyToOne(fetch = FetchType.LAZY)
   @JoinColumn(name = "member_id", nullable = false)
   @NotNull(message = "Member is required")

@@ -3,6 +3,7 @@ package com.bansaiyai.bansaiyai.controller;
 import com.bansaiyai.bansaiyai.entity.Member;
 import com.bansaiyai.bansaiyai.entity.User;
 import com.bansaiyai.bansaiyai.service.MemberService;
+import com.bansaiyai.bansaiyai.dto.PaymentResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -17,7 +18,7 @@ import java.util.List;
 import java.util.UUID;
 
 @RestController
-@RequestMapping("/api/members")
+@RequestMapping("/members")
 @CrossOrigin(origins = "*", maxAge = 3600)
 public class MemberController {
 
@@ -29,6 +30,9 @@ public class MemberController {
 
   @Autowired
   private com.bansaiyai.bansaiyai.service.MemberAccessEvaluator memberAccessEvaluator;
+
+  @Autowired
+  private com.bansaiyai.bansaiyai.service.PaymentService paymentService;
 
   @GetMapping
   @PreAuthorize("hasAnyRole('PRESIDENT', 'SECRETARY', 'OFFICER')")
@@ -66,6 +70,36 @@ public class MemberController {
             return ResponseEntity.status(403).<Member>build();
           }
           return ResponseEntity.ok(member);
+        })
+        .orElse(ResponseEntity.notFound().build());
+  }
+
+  /**
+   * Get member transactions by UUID (SECURE)
+   */
+  @GetMapping("/{uuid}/transactions")
+  @PreAuthorize("hasAnyRole('PRESIDENT', 'SECRETARY', 'OFFICER', 'MEMBER')")
+  public ResponseEntity<Page<PaymentResponse>> getMemberTransactions(
+      @PathVariable UUID uuid,
+      @RequestParam(defaultValue = "0") int page,
+      @RequestParam(defaultValue = "10") int size,
+      @RequestParam(defaultValue = "paymentDate") String sortBy,
+      @RequestParam(defaultValue = "desc") String sortDir,
+      Authentication authentication) {
+
+    User currentUser = getCurrentUser(authentication);
+
+    return memberService.getMemberByUuid(uuid)
+        .map(member -> {
+          // Check access using evaluator
+          if (!memberAccessEvaluator.canViewMember(currentUser, member.getId())) {
+            return ResponseEntity.status(403).<Page<PaymentResponse>>build();
+          }
+
+          Sort.Direction direction = sortDir.equalsIgnoreCase("desc") ? Sort.Direction.DESC : Sort.Direction.ASC;
+          Pageable pageable = PageRequest.of(page, size, Sort.by(direction, sortBy));
+
+          return ResponseEntity.ok(paymentService.getPaymentsByMember(member.getId(), pageable));
         })
         .orElse(ResponseEntity.notFound().build());
   }

@@ -2,10 +2,13 @@ package com.bansaiyai.bansaiyai.controller;
 
 import com.bansaiyai.bansaiyai.dto.LoanApplicationRequest;
 import com.bansaiyai.bansaiyai.dto.LoanResponse;
+import com.bansaiyai.bansaiyai.dto.MemberLoanApplicationRequest;
 import com.bansaiyai.bansaiyai.dto.LoanApprovalRequest;
+import com.bansaiyai.bansaiyai.entity.User;
 import com.bansaiyai.bansaiyai.entity.enums.LoanStatus;
 import com.bansaiyai.bansaiyai.entity.enums.LoanType;
 import com.bansaiyai.bansaiyai.service.LoanService;
+import com.bansaiyai.bansaiyai.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -20,12 +23,15 @@ import org.springframework.web.bind.annotation.*;
 import java.util.UUID;
 
 @RestController
-@RequestMapping("/api/loans")
+@RequestMapping("/loans")
 @CrossOrigin(origins = "*", maxAge = 3600)
 public class LoanController {
 
   @Autowired
   private LoanService loanService;
+
+  @Autowired
+  private UserService userService;
 
   /**
    * Get current authenticated username from security context
@@ -41,6 +47,43 @@ public class LoanController {
     try {
       String createdBy = getCurrentUsername();
       LoanResponse loanResponse = loanService.createLoanApplication(request, createdBy);
+      return ResponseEntity.ok(loanResponse);
+    } catch (Exception e) {
+      return ResponseEntity.badRequest().build();
+    }
+  }
+
+  /**
+   * Member self-service loan application endpoint.
+   * Allows members to apply for loans using their own authenticated identity.
+   * The member ID is derived from the authenticated user context.
+   */
+  @PostMapping("/member-apply")
+  @PreAuthorize("hasRole('ROLE_MEMBER')")
+  public ResponseEntity<LoanResponse> applyForLoanAsMember(
+      @RequestBody MemberLoanApplicationRequest request,
+      Authentication authentication) {
+    try {
+      String username = authentication.getName();
+      User currentUser = userService.findByUsername(username)
+          .orElseThrow(() -> new RuntimeException("Authenticated user not found"));
+
+      if (currentUser.getMember() == null) {
+        return ResponseEntity.badRequest().build();
+      }
+
+      // Convert MemberLoanApplicationRequest to LoanApplicationRequest
+      // Use the authenticated member's ID instead of accepting from request
+      LoanApplicationRequest loanRequest = LoanApplicationRequest.builder()
+          .memberId(currentUser.getMember().getId())
+          .loanType(request.getLoanType())
+          .principalAmount(request.getPrincipalAmount())
+          .termMonths(request.getTermMonths())
+          .purpose(request.getPurpose())
+          .guarantors(request.getGuarantors())
+          .build();
+
+      LoanResponse loanResponse = loanService.createLoanApplication(loanRequest, username);
       return ResponseEntity.ok(loanResponse);
     } catch (Exception e) {
       return ResponseEntity.badRequest().build();

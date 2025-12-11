@@ -24,7 +24,10 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
@@ -44,6 +47,16 @@ class AccountingServiceTest {
     private com.bansaiyai.bansaiyai.repository.UserRepository userRepository;
     @Mock
     private com.bansaiyai.bansaiyai.service.AuditService auditService;
+    @Mock
+    private com.bansaiyai.bansaiyai.repository.FiscalPeriodRepository fiscalPeriodRepository;
+    @Mock
+    private com.bansaiyai.bansaiyai.repository.SavingAccountRepository savingAccountRepository;
+    @Mock
+    private com.bansaiyai.bansaiyai.repository.SavingBalanceRepository savingBalanceRepository;
+    @Mock
+    private com.bansaiyai.bansaiyai.repository.AccountRepository accountRepository;
+    @Mock
+    private com.bansaiyai.bansaiyai.repository.AccountingRepository accountingRepository;
 
     @InjectMocks
     private AccountingService accountingService;
@@ -87,9 +100,12 @@ class AccountingServiceTest {
 
         when(paymentRepository.findLoanPaymentsByLoan(eq(loan.getId()), anyList()))
                 .thenReturn(List.of(payment));
+        when(fiscalPeriodRepository.findByMonthAndYear(MONTH, YEAR)).thenReturn(Optional.empty());
+        when(accountingRepository.sumDebitsByFiscalPeriod(anyString())).thenReturn(BigDecimal.ZERO);
+        when(accountingRepository.sumCreditsByFiscalPeriod(anyString())).thenReturn(BigDecimal.ZERO);
 
         // Act
-        accountingService.closeMonth(MONTH, YEAR);
+        accountingService.closeMonth(MONTH, YEAR, "admin");
 
         // Assert
         verify(loanRepository).findByStatusIn(any());
@@ -104,9 +120,12 @@ class AccountingServiceTest {
         when(loanRepository.findByStatusIn(any())).thenReturn(List.of(loan));
         when(loanBalanceRepository.findByLoanIdAndBalanceDate(loan.getId(), END_DATE))
                 .thenReturn(Optional.of(new LoanBalance()));
+        when(fiscalPeriodRepository.findByMonthAndYear(MONTH, YEAR)).thenReturn(Optional.empty());
+        when(accountingRepository.sumDebitsByFiscalPeriod(anyString())).thenReturn(BigDecimal.ZERO);
+        when(accountingRepository.sumCreditsByFiscalPeriod(anyString())).thenReturn(BigDecimal.ZERO);
 
         // Act
-        accountingService.closeMonth(MONTH, YEAR);
+        accountingService.closeMonth(MONTH, YEAR, "admin");
 
         // Assert
         verify(loanBalanceRepository, never()).save(any(LoanBalance.class));

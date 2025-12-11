@@ -39,22 +39,36 @@ const LoanManagement: React.FC<LoanManagementProps> = ({ userRole }) => {
   const [receiptData, setReceiptData] = useState<any>(null);
   const [showReceipt, setShowReceipt] = useState(false);
   
+  // Current Member State
+  const [currentMember, setCurrentMember] = useState<any>(null);
+
   // Fetch Data on Mount
   useEffect(() => {
       const fetchData = async () => {
           try {
               setLoading(true);
+              
+              let myProfile = null;
+              if (userRole === UserRole.MEMBER) {
+                 try {
+                     myProfile = await api.members.getMyProfile();
+                     setCurrentMember(myProfile);
+                 } catch (e) {
+                     console.error("Failed to fetch profile", e);
+                 }
+              }
+
               const [loansData, txsData, notifsData] = await Promise.all([
                   api.loans.getAll(),
                   api.accounting.getTransactions(),
                   api.notifications.getAll()
               ]);
               
-              if (userRole === UserRole.MEMBER) {
-                  // Mock: Filter for current user M001
-                  setLoans(loansData.filter(l => l.memberId === 'M001'));
-                  setTransactions(txsData.filter(t => t.memberId === 'M001'));
-                  setPaymentNotifications(notifsData.filter(n => n.memberId === 'M001'));
+              if (userRole === UserRole.MEMBER && myProfile) {
+                  // Filter for current user using UUID
+                  setLoans(loansData.filter(l => l.memberId === myProfile.id));
+                  setTransactions(txsData.filter(t => t.memberId === myProfile.id));
+                  setPaymentNotifications(notifsData.filter(n => n.memberId === myProfile.id));
               } else {
                   setLoans(loansData);
                   setTransactions(txsData);
@@ -137,9 +151,32 @@ const LoanManagement: React.FC<LoanManagementProps> = ({ userRole }) => {
   };
 
   const handleSubmitApplication = async (form: any) => {
-      const member = await api.members.getById(form.memberId || 'M001'); // Default to M001 for member view mock
+      let targetMemberId = form.memberId;
+      
+      // If Officer, resolve the member ID input (which might be ID Card or Name) to a UUID
+      if (userRole === UserRole.OFFICER) {
+         try {
+             // Treat input as keyword for search
+             const results = await api.members.search(form.memberId);
+             if (results.length > 0) {
+                 // Use the first match
+                 targetMemberId = results[0].uuid;
+             } else {
+                 alert("Member not found! Please check the Member ID or Name.");
+                 return;
+             }
+         } catch (e) {
+             console.error("Search failed", e);
+             alert("Error searching for member.");
+             return;
+         }
+      } else if (userRole === UserRole.MEMBER && currentMember) {
+          targetMemberId = currentMember.id;
+      }
+
+      const member = await api.members.getById(targetMemberId);
       const appData = {
-          memberId: userRole === UserRole.MEMBER ? 'M001' : form.memberId,
+          memberId: targetMemberId,
           memberName: member?.fullName || 'Unknown',
           principalAmount: parseFloat(form.principalAmount),
           remainingBalance: parseFloat(form.principalAmount),

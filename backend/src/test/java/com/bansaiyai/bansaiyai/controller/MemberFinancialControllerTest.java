@@ -29,6 +29,9 @@ import org.springframework.security.test.context.support.WithMockUser;
 public class MemberFinancialControllerTest extends BaseIntegrationTest {
 
         @Autowired
+        private org.springframework.test.web.servlet.MockMvc mockMvc;
+
+        @Autowired
         private MemberRepository memberRepository;
 
         @Autowired
@@ -57,7 +60,7 @@ public class MemberFinancialControllerTest extends BaseIntegrationTest {
                                 .lastName("Member")
                                 .email("test@example.com")
                                 .role(User.Role.MEMBER)
-                                .isActive(true)
+                                .enabled(true)
                                 .build();
                 user = userRepository.save(user);
 

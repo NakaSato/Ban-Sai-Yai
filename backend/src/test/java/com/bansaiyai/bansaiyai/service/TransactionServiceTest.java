@@ -162,9 +162,7 @@ public class TransactionServiceTest {
         }));
     }
 
-    private com.bansaiyai.bansaiyai.entity.FiscalPeriod createOpenPeriod() {
-        com.bansaiyai.bansaiyai.entity.FiscalPeriod period = new com.bansaiyai.bansaiyai.entity.FiscalPeriod();
-        period.setStatus("OPEN");
-        return period;
+    private com.bansaiyai.bansaiyai.dto.dashboard.FiscalPeriodDTO createOpenPeriod() {
+        return new com.bansaiyai.bansaiyai.dto.dashboard.FiscalPeriodDTO("October 2025", "OPEN");
     }
 }

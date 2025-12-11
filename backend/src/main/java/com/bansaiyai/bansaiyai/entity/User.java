@@ -1,5 +1,6 @@
 package com.bansaiyai.bansaiyai.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.FieldNameConstants;
@@ -91,6 +92,7 @@ public class User extends BaseEntity {
   @Column(name = "permission")
   private Set<String> permissions = new HashSet<>();
 
+  @JsonIgnoreProperties({ "user" })
   @OneToOne(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
   private Member member;
 

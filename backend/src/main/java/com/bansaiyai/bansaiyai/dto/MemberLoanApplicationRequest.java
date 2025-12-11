@@ -5,19 +5,19 @@ import jakarta.validation.constraints.*;
 import lombok.*;
 
 import java.math.BigDecimal;
+import java.util.List;
 
 /**
- * DTO for loan application requests.
- * Contains validation rules based on business requirements.
+ * DTO for member self-service loan application requests.
+ * Unlike LoanApplicationRequest, this DTO does NOT include memberId
+ * because the member ID is derived from the authenticated user context.
  */
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class LoanApplicationRequest {
-  private Long memberId;
-  private java.util.UUID memberUuid;
+public class MemberLoanApplicationRequest {
 
   @NotNull(message = "Loan type is required")
   private LoanType loanType;
@@ -36,5 +36,5 @@ public class LoanApplicationRequest {
   @Size(min = 10, max = 500, message = "Purpose must be between 10 and 500 characters")
   private String purpose;
 
-  private java.util.List<GuarantorRequest> guarantors;
+  private List<GuarantorRequest> guarantors;
 }

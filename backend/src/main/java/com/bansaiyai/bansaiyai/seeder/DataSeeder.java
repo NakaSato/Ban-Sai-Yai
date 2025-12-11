@@ -109,7 +109,24 @@ public class DataSeeder {
             transactionService.processDepositWithCreator(deposit, officer); // Created by Officer, pending approval
             log.info("Seeded Pending Deposit for Member 1");
         } catch (Exception e) {
-            log.error("Failed to seed deposit: {}", e.getMessage());
+            log.error("Failed to seed deposit: " + e.getMessage());
+        }
+
+        // 5. Seed Member User (for testing Member Role)
+        if (!userRepository.existsByUsername("member1")) {
+            User memberUser = createUserIfNotFound("member1", "member123", Set.of(userRole));
+
+            // Link to Member 1 if not already linked
+            if (member1.getUser() == null) {
+                member1.setUser(memberUser);
+                memberRepository.save(member1);
+                // Also update user side if needed (usually managed by Hibernate if
+                // bidirectional properly set, but explicit save on owner side is safest)
+                // Member is the owner of relation? Let's check Member.java.
+                // User line 97: @OneToOne(mappedBy = "user") private Member member; -> Member
+                // is owner (has @JoinColumn)
+                log.info("Linked 'member1' user to Member: {}", member1.getName());
+            }
         }
 
         log.info("Data Seeding Completed.");

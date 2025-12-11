@@ -188,7 +188,7 @@ public class PaymentController {
    * Get all payments (admin only)
    */
   @GetMapping
-  @PreAuthorize("hasRole('PRESIDENT')")
+  @PreAuthorize("hasAnyRole('PRESIDENT', 'SECRETARY', 'OFFICER')")
   public ResponseEntity<Page<PaymentResponse>> getAllPayments(
       @RequestParam(defaultValue = "0") int page,
       @RequestParam(defaultValue = "10") int size,

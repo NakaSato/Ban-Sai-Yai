@@ -61,6 +61,7 @@ public class AccountingController {
     }
 
     @GetMapping("/accounts")
+    @PreAuthorize("hasAnyRole('PRESIDENT', 'SECRETARY', 'OFFICER')")
     public ResponseEntity<java.util.List<com.bansaiyai.bansaiyai.entity.Account>> getAllAccounts() {
         return ResponseEntity.ok(accountingService.getAllAccounts());
     }

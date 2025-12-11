@@ -163,6 +163,25 @@ export const api = {
         occupation: m.occupation,
       };
     },
+    search: async (keyword: string) => {
+      const response = await axiosClient.get(`/members/search?keyword=${keyword}`);
+      const backendMembers = response.data || [];
+      return backendMembers.map((m: any) => ({
+        id: m.uuid,
+        fullName: m.name,
+        idCardNumber: m.idCard,
+        birthDate: m.dateOfBirth,
+        address: m.address,
+        phoneNumber: m.phone,
+        shareBalance: m.shareCapital,
+        savingsBalance: m.savingAccount ? m.savingAccount.balance : 0,
+        joinedDate: m.registrationDate,
+        status: (m.isActive ? "ACTIVE" : "INACTIVE") as "ACTIVE" | "INACTIVE",
+        isFrozen: false,
+        monthlyIncome: m.monthlyIncome,
+        occupation: m.occupation,
+      }));
+    },
     create: async (member: Member) => {
       // Map Frontend Member -> Backend DTO
       const payload = {
@@ -225,7 +244,7 @@ export const api = {
     getTransactions: async (memberId: string) => {
       try {
         const response = await axiosClient.get(
-          `/members/${memberId}/transactions?size=50`
+          `/members/${memberId}/transactions?size=50&sort=paymentDate,desc`
         );
         const payments = response.data.content || [];
         return payments.map((p: any) => ({
@@ -240,25 +259,8 @@ export const api = {
           receiptId: p.paymentNumber,
         }));
       } catch (error) {
-        // Fallback: fetch from general payments filtered by member
-        console.warn(
-          "Member transactions endpoint not available, using fallback"
-        );
-        const response = await axiosClient.get(
-          `/payments?memberId=${memberId}&size=50&sort=paymentDate,desc`
-        );
-        const payments = response.data.content || [];
-        return payments.map((p: any) => ({
-          id: p.id?.toString() || `T-${Date.now()}`,
-          date: p.paymentDate || p.createdAt,
-          type: mapPaymentTypeToTransaction(p.paymentType),
-          category: p.paymentType,
-          amount: p.amount || 0,
-          memberId: memberId,
-          description:
-            p.description || `Payment ${p.paymentNumber || ""}`.trim(),
-          receiptId: p.paymentNumber,
-        }));
+        console.warn("Failed to fetch member transactions", error);
+        return [];
       }
     },
 
@@ -376,22 +378,15 @@ export const api = {
       // Assuming application object matches mostly or we map it:
       // { memberId, amount, term, type, reason } -> { memberId, principalAmount, termMonths, loanType, purpose }
       const payload = {
-        memberId: application.memberId, // This might need to be ID (Long) or UUID depending on backend. Backend DTO usually takes ID.
-        // CAUTION: Backend `LoanApplicationRequest` likely needs member ID (Long), but frontend usually works with UUIDs.
-        // We might need to look up Member ID from UUID first if backend doesn't support UUID in request.
-        // For now, assuming memberId passed here is compatible or we use UUID if supported.
-        // Let's assume we need to use the member UUID if the backend supports it, or we rely on the frontend passing the database ID (which it might not have easily).
-        // Actually, looks like frontend types.ts Member has `id`. If we mapped `uuid` -> `id`, then `id` is UUID.
-        // If backend `LoanApplicationRequest` expects Long ID, we have a problem.
-        // Let's check `LoanApplicationRequest` or `MemberController` lookup.
-        // Workaround: We might need to fetch member by UUID to get ID first? Or update Backend to accept UUID.
-        // For this iteration, let's send what we have and see.
-        // The `LoanApplicationRequest` usually takes `memberId`.
+        memberUuid: application.memberId, // frontend 'memberId' is UUID
         principalAmount: application.amount,
         termMonths: application.term,
         loanType: application.type,
         purpose: application.reason,
-        interestRate: 12.0, // Default or from logic
+        interestRate: 12.0, // Default
+        guarantors: application.guarantorIds ? application.guarantorIds.map((guid: string) => ({
+             memberUuid: guid // Assuming guarantorIds are also UUIDs (from search)
+        })) : []
       };
 
       // If application has memberId as UUID, and backend needs Long...
@@ -412,6 +407,43 @@ export const api = {
         loanType: l.loanType,
         contractNo: l.loanNumber,
         guarantorIds: [],
+      };
+    },
+    /**
+     * Member self-service loan application.
+     * Uses the authenticated member's context (no memberId needed in payload).
+     */
+    applyForMyLoan: async (application: {
+      loanType: string;
+      principalAmount: number;
+      termMonths: number;
+      purpose: string;
+      guarantors?: Array<{
+        memberId: number;
+        guaranteedAmount?: number;
+        relationship?: string;
+      }>;
+    }) => {
+      const payload = {
+        loanType: application.loanType,
+        principalAmount: application.principalAmount,
+        termMonths: application.termMonths,
+        purpose: application.purpose,
+        guarantors: application.guarantors || [],
+      };
+
+      const response = await axiosClient.post("/loans/member-apply", payload);
+      const l = response.data;
+      return {
+        id: l.uuid || l.id?.toString(),
+        loanNumber: l.loanNumber,
+        principalAmount: l.principalAmount,
+        outstandingBalance: l.outstandingBalance,
+        interestRate: l.interestRate,
+        termMonths: l.termMonths,
+        startDate: l.startDate,
+        status: l.status,
+        loanType: l.loanType,
       };
     },
     approve: async (id: string) => {

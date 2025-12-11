@@ -38,18 +38,21 @@ class TrialBalanceServiceTest {
     @Mock
     private com.bansaiyai.bansaiyai.repository.SavingTransactionRepository savingTransactionRepository;
 
+    @Mock
+    private com.bansaiyai.bansaiyai.repository.AccountRepository accountRepository;
+
     private DashboardService dashboardService;
 
     @BeforeEach
     void setUp() {
         dashboardService = new DashboardService(
-            memberRepository,
-            loanRepository,
-            savingRepository,
-            paymentRepository,
-            savingTransactionRepository,
-            accountingRepository
-        );
+                memberRepository,
+                loanRepository,
+                savingRepository,
+                paymentRepository,
+                savingTransactionRepository,
+                accountingRepository,
+                accountRepository);
     }
 
     @Test
@@ -57,7 +60,7 @@ class TrialBalanceServiceTest {
         // Given: Equal debits and credits
         BigDecimal debits = new BigDecimal("50000.00");
         BigDecimal credits = new BigDecimal("50000.00");
-        
+
         when(accountingRepository.sumDebitsByFiscalPeriod(anyString())).thenReturn(debits);
         when(accountingRepository.sumCreditsByFiscalPeriod(anyString())).thenReturn(credits);
 
@@ -77,7 +80,7 @@ class TrialBalanceServiceTest {
         // Given: Debits exceed credits
         BigDecimal debits = new BigDecimal("60000.00");
         BigDecimal credits = new BigDecimal("50000.00");
-        
+
         when(accountingRepository.sumDebitsByFiscalPeriod(anyString())).thenReturn(debits);
         when(accountingRepository.sumCreditsByFiscalPeriod(anyString())).thenReturn(credits);
 
@@ -97,7 +100,7 @@ class TrialBalanceServiceTest {
         // Given: Credits exceed debits
         BigDecimal debits = new BigDecimal("40000.00");
         BigDecimal credits = new BigDecimal("50000.00");
-        
+
         when(accountingRepository.sumDebitsByFiscalPeriod(anyString())).thenReturn(debits);
         when(accountingRepository.sumCreditsByFiscalPeriod(anyString())).thenReturn(credits);
 
@@ -133,7 +136,7 @@ class TrialBalanceServiceTest {
     void testCalculateTrialBalance_ZeroValues() {
         // Given: Zero values
         BigDecimal zero = BigDecimal.ZERO;
-        
+
         when(accountingRepository.sumDebitsByFiscalPeriod(anyString())).thenReturn(zero);
         when(accountingRepository.sumCreditsByFiscalPeriod(anyString())).thenReturn(zero);
 

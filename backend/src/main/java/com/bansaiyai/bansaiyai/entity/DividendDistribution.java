@@ -19,7 +19,7 @@ import java.util.List;
 @EntityListeners(AuditingEntityListener.class)
 public class DividendDistribution extends BaseEntity {
 
-    @Column(name = "year", nullable = false, unique = true)
+    @Column(name = "fiscal_year", nullable = false, unique = true)
     private Integer year;
 
     @Column(name = "total_profit", nullable = false, precision = 19, scale = 2)

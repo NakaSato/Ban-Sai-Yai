@@ -12,7 +12,7 @@ import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "fiscal_period", uniqueConstraints = {
-        @UniqueConstraint(columnNames = { "month", "year" })
+        @UniqueConstraint(columnNames = { "month", "fiscal_year" })
 })
 @Data
 @Builder
@@ -23,7 +23,7 @@ public class FiscalPeriod extends BaseEntity {
     @Column(nullable = false)
     private Integer month;
 
-    @Column(nullable = false)
+    @Column(name = "fiscal_year", nullable = false)
     private Integer year;
 
     @Column(nullable = false, length = 20)

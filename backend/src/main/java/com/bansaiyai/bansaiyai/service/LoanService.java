@@ -90,8 +90,16 @@ public class LoanService {
   public LoanResponse createLoanApplication(LoanApplicationRequest request, String createdBy) {
     log.info("Creating loan application for member ID: {}", request.getMemberId());
 
-    Member member = memberRepository.findById(request.getMemberId())
-        .orElseThrow(() -> new ResourceNotFoundException("Member", "id", request.getMemberId()));
+    Member member;
+    if (request.getMemberId() != null) {
+      member = memberRepository.findById(request.getMemberId())
+          .orElseThrow(() -> new ResourceNotFoundException("Member", "id", request.getMemberId()));
+    } else if (request.getMemberUuid() != null) {
+      member = memberRepository.findByUuid(request.getMemberUuid())
+          .orElseThrow(() -> new ResourceNotFoundException("Member", "uuid", request.getMemberUuid().toString()));
+    } else {
+      throw new BusinessException("Member ID or UUID is required", "MISSING_MEMBER_ID");
+    }
 
     // Validate member is active
     if (!member.getIsActive()) {
@@ -99,7 +107,7 @@ public class LoanService {
     }
 
     // Check for existing active loans
-    List<Loan> activeLoans = loanRepository.findByMemberIdAndStatus(request.getMemberId(), LoanStatus.ACTIVE);
+    List<Loan> activeLoans = loanRepository.findByMemberIdAndStatus(member.getId(), LoanStatus.ACTIVE);
     if (!activeLoans.isEmpty()) {
       throw new BusinessException("Member already has an active loan", "ACTIVE_LOAN_EXISTS");
     }
@@ -143,8 +151,18 @@ public class LoanService {
       }
 
       for (com.bansaiyai.bansaiyai.dto.GuarantorRequest gReq : request.getGuarantors()) {
-        Member guarantorMember = memberRepository.findById(gReq.getMemberId())
-            .orElseThrow(() -> new ResourceNotFoundException("Guarantor Member", "id", gReq.getMemberId()));
+        Member guarantorMember;
+        if (gReq.getMemberId() != null) {
+          guarantorMember = memberRepository.findById(gReq.getMemberId())
+              .orElseThrow(() -> new ResourceNotFoundException("Guarantor Member", "id", gReq.getMemberId()));
+        } else if (gReq.getMemberUuid() != null) {
+          guarantorMember = memberRepository.findByUuid(gReq.getMemberUuid())
+              .orElseThrow(
+                  () -> new ResourceNotFoundException("Guarantor Member", "uuid", gReq.getMemberUuid().toString()));
+        } else {
+          // For now skip or throw? Throwing is safer.
+          throw new BusinessException("Guarantor Member ID or UUID is required", "MISSING_GUARANTOR_ID");
+        }
 
         // Validation 1: Guarantor cannot be the borrower
         if (guarantorMember.getId().equals(member.getId())) {

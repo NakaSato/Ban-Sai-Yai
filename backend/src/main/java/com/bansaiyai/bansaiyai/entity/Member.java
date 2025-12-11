@@ -1,5 +1,7 @@
 package com.bansaiyai.bansaiyai.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.*;
 import lombok.*;
@@ -106,9 +108,11 @@ public class Member extends BaseEntity {
   private BigDecimal shareCapital;
 
   // Relationships
+  @JsonIgnore
   @OneToMany(mappedBy = "member", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
   private List<Loan> loans;
 
+  @JsonIgnoreProperties({ "member" })
   @OneToOne(mappedBy = "member", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
   private SavingAccount savingAccount;
 
@@ -133,9 +137,11 @@ public class Member extends BaseEntity {
     this.user = user;
   }
 
+  @JsonIgnore
   @OneToMany(mappedBy = "member", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
   private List<Payment> payments;
 
+  @JsonIgnore
   @OneToOne(cascade = CascadeType.ALL, fetch = FetchType.LAZY)
   @JoinColumn(name = "user_id", unique = true)
   private User user;
